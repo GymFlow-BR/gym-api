@@ -4,7 +4,7 @@ package br.com.gymflow.api.domain.enums;
 
 public enum UserRole {
 
-    ADMIN("Adiministrador"),
+    ADMIN("Administrador"),
     TEACHER("Professor"),
     STUDENT("Aluno");
 
