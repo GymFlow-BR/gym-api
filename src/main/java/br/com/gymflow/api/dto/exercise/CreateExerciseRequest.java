@@ -22,7 +22,7 @@ public record CreateExerciseRequest(
         @Size(max = 1000, message = "A descrição deve ter no máximo 1000 caracteres")
         String description,
 
-        @NotBlank(message = "O nome do equipamento é obrigatório")
+
         @Size(max = 120, message = "O nome do equipamento deve ter no máximo 120 caracteres")
         String equipmentName,
 
