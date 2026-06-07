@@ -54,12 +54,7 @@ public class ExerciseService {
     public ExerciseResponse update(Long id, UpdateExerciseRequest request) {
         Exercise exercise = getExerciseById(id);
 
-        exercise.setExerciseName(request.exerciseName());
-        exercise.setMuscleGroup(request.muscleGroup());
-        exercise.setEquipmentName(request.equipmentName());
-        exercise.setDescription(request.description());
-        exercise.setImageUrl(request.imageUrl());
-        exercise.setVideoUrl(request.videoUrl());
+        exerciseMapper.updateEntity(exercise, request);
 
         Exercise updatedExercise = exerciseRepository.save(exercise);
 

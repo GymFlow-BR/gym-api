@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public record ExerciseResponse(
         Long id,
+        Long academyId,
         String exerciseName,
         String muscleGroup,
         String description,
