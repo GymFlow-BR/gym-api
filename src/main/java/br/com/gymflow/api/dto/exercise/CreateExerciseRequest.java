@@ -7,8 +7,7 @@ import org.hibernate.validator.constraints.URL;
 
 public record CreateExerciseRequest(
 
-        // Id so sera pedido no request nesta primeira versao
-        @NotNull(message = "O id da academia é obrigatório")
+        @NotNull(message = "O id da organização é obrigatório")
         Long organizationId,
 
         @NotBlank(message = "O nome do exercício é obrigatório")

@@ -2,12 +2,11 @@ package br.com.gymflow.api.domain;
 
 import br.com.gymflow.api.domain.enums.OrganizationType;
 import jakarta.persistence.*;
-import jakarta.validation.groups.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.CurrentTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -15,7 +14,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "Organizations")
+@Table(name = "organizations")
 public class Organization {
 
    @Id
@@ -41,9 +40,9 @@ public class Organization {
 
    @CreationTimestamp
    @Column(name = "created_at", nullable = false, updatable = false)
-   private LocalDateTime created_at;
+   private LocalDateTime createdAt;
 
-   @CreationTimestamp
+   @UpdateTimestamp
    @Column(name = "updated_at", nullable = false)
-   private LocalDateTime updated_at;
+   private LocalDateTime updatedAt;
 }
