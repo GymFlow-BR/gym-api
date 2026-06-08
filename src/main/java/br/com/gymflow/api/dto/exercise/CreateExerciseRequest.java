@@ -9,7 +9,7 @@ public record CreateExerciseRequest(
 
         // Id so sera pedido no request nesta primeira versao
         @NotNull(message = "O id da academia é obrigatório")
-        Long academyId,
+        Long organizationId,
 
         @NotBlank(message = "O nome do exercício é obrigatório")
         @Size(max = 120, message = "O nome deve ter no máximo 120 caracteres")

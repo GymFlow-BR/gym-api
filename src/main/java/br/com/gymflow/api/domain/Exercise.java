@@ -22,8 +22,8 @@ public class Exercise {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "academy_id", nullable = false)
-    private Academy academy;
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
 
     @Column(name = "exercise_name", nullable = false, length = 120)
     private String exerciseName;

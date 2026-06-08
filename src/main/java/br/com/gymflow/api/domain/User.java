@@ -2,7 +2,6 @@ package br.com.gymflow.api.domain;
 
 import br.com.gymflow.api.domain.enums.UserRole;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,8 +21,8 @@ public class User {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "academy_id", nullable = false)
-    private Academy academy;
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
 
     @Column(name = "user_name", nullable = false, length = 150)
     private String name;

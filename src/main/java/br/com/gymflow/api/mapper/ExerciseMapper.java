@@ -28,7 +28,7 @@ public class ExerciseMapper {
     public ExerciseResponse toResponse(Exercise exercise) {
         return new ExerciseResponse(
                 exercise.getId(),
-                exercise.getAcademy().getId(),
+                exercise.getOrganization().getId(),
                 exercise.getExerciseName(),
                 exercise.getMuscleGroup(),
                 exercise.getDescription(),
