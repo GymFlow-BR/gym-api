@@ -2,6 +2,7 @@ package br.com.gymflow.api.domain;
 
 import br.com.gymflow.api.domain.enums.OrganizationType;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,6 +30,7 @@ public class Organization {
    @Column(name = "organization_type", nullable = false, length = 30)
    private OrganizationType organizationType;
 
+   @Email
    @Column(name = "organization_email", unique = true, length = 150)
    private String organizationEmail;
 
