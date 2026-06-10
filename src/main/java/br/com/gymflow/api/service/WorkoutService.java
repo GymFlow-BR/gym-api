@@ -8,7 +8,6 @@ import br.com.gymflow.api.dto.workout.UpdateWorkoutRequest;
 import br.com.gymflow.api.dto.workout.WorkoutResponse;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.WorkoutMapper;
-import br.com.gymflow.api.repository.OrganizationRepository;
 import br.com.gymflow.api.repository.UserRepository;
 import br.com.gymflow.api.repository.WorkoutRepository;
 import lombok.RequiredArgsConstructor;
