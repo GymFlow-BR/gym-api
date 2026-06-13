@@ -2,6 +2,7 @@ package br.com.gymflow.api.controller;
 
 import br.com.gymflow.api.dto.studentWorkouts.CreateStudentWorkoutRequest;
 import br.com.gymflow.api.dto.studentWorkouts.PatchStudentWorkoutRequest;
+import br.com.gymflow.api.dto.studentWorkouts.StudentCurrentWorkoutResponse;
 import br.com.gymflow.api.dto.studentWorkouts.StudentWorkoutResponse;
 import br.com.gymflow.api.service.StudentWorkoutService;
 import jakarta.validation.Valid;
@@ -60,6 +61,16 @@ public class StudentWorkoutController {
             @RequestBody @Valid PatchStudentWorkoutRequest request
     ) {
         StudentWorkoutResponse response = studentWorkoutService.patch(studentId, studentWorkoutId, request);
+
+        return ResponseEntity.ok(response);
+    }
+
+
+    @GetMapping("/current")
+    public ResponseEntity<StudentCurrentWorkoutResponse> findCurrentWorkout(
+            @PathVariable Long studentId
+    ) {
+        StudentCurrentWorkoutResponse response = studentWorkoutService.findCurrentWorkout(studentId);
 
         return ResponseEntity.ok(response);
     }

@@ -3,14 +3,17 @@ package br.com.gymflow.api.service;
 import br.com.gymflow.api.domain.StudentWorkout;
 import br.com.gymflow.api.domain.User;
 import br.com.gymflow.api.domain.Workout;
+import br.com.gymflow.api.domain.WorkoutExercise;
 import br.com.gymflow.api.domain.enums.WorkoutStatus;
 import br.com.gymflow.api.dto.studentWorkouts.CreateStudentWorkoutRequest;
 import br.com.gymflow.api.dto.studentWorkouts.PatchStudentWorkoutRequest;
+import br.com.gymflow.api.dto.studentWorkouts.StudentCurrentWorkoutResponse;
 import br.com.gymflow.api.dto.studentWorkouts.StudentWorkoutResponse;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.StudentWorkoutMapper;
 import br.com.gymflow.api.repository.StudentWorkoutRepository;
 import br.com.gymflow.api.repository.UserRepository;
+import br.com.gymflow.api.repository.WorkoutExerciseRepository;
 import br.com.gymflow.api.repository.WorkoutRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ public class StudentWorkoutService {
     private final StudentWorkoutMapper studentWorkoutMapper;
     private final WorkoutRepository workoutRepository;
     private final UserRepository userRepository;
+    private final WorkoutExerciseRepository workoutExerciseRepository;
 
     @Transactional
     public StudentWorkoutResponse create(Long studentId, CreateStudentWorkoutRequest request) {
@@ -94,6 +98,23 @@ public class StudentWorkoutService {
         studentWorkout.setStatus(WorkoutStatus.INACTIVE);
 
         studentWorkoutRepository.save(studentWorkout);
+    }
+
+
+    @Transactional(readOnly = true)
+    public StudentCurrentWorkoutResponse findCurrentWorkout(Long studentId) {
+        getStudentById(studentId);
+
+        StudentWorkout studentWorkout = studentWorkoutRepository
+                .findFirstByStudentIdAndStatusOrderByAssignedAtDesc(studentId, WorkoutStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Active workout not found student id: " + studentId
+                ));
+
+        List<WorkoutExercise> workoutExercises = workoutExerciseRepository
+                .findAllByWorkoutIdOrderByExerciseOrderAsc(studentWorkout.getWorkout().getId());
+
+        return studentWorkoutMapper.toCurrentWorkoutResponse(studentWorkout, workoutExercises);
     }
 
 
