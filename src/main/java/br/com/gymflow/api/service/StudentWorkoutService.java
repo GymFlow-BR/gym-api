@@ -37,6 +37,8 @@ public class StudentWorkoutService {
         User student = getStudentById(studentId);
         Workout workout = getWorkoutById(request.workoutId());
 
+        validateStudentBelongsToWorkoutOrganization(student, workout);
+
         StudentWorkout studentWorkout = studentWorkoutMapper.toEntity(request);
         studentWorkout.setStudent(student);
         studentWorkout.setWorkout(workout);
@@ -154,6 +156,18 @@ public class StudentWorkoutService {
                             + studentWorkout.getId()
                             + " for student id: "
                             + studentId
+            );
+        }
+    }
+
+
+    private void validateStudentBelongsToWorkoutOrganization(User student, Workout workout) {
+        Long studentOrganizationId = student.getOrganization().getId();
+        Long workoutOrganizationId = workout.getTeacher().getOrganization().getId();
+
+        if (!studentOrganizationId.equals(workoutOrganizationId)) {
+            throw new IllegalArgumentException(
+                    "Student does not belong to the same organization as the workout"
             );
         }
     }
