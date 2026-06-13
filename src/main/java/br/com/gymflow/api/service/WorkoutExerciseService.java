@@ -32,6 +32,8 @@ public class WorkoutExerciseService {
         Workout workout = getWorkoutById(workoutId);
         Exercise exercise = getExerciseById(request.exerciseId());
 
+        validateExerciseBelongsToWorkoutOrganization(workout, exercise);
+
         WorkoutExercise workoutExercise = workoutExerciseMapper.toEntity(request);
         workoutExercise.setWorkout(workout);
         workoutExercise.setExercise(exercise);
@@ -117,6 +119,17 @@ public class WorkoutExerciseService {
         if (!workoutExercise.getWorkout().getId().equals(workoutId)) {
             throw new ResourceNotFoundException(
                     "Workout exercise not found with id: " + workoutExercise.getId() + " for workout id: " + workoutId
+            );
+        }
+    }
+
+    private void validateExerciseBelongsToWorkoutOrganization(Workout workout, Exercise exercise) {
+        Long workoutOrganizationId = workout.getTeacher().getOrganization().getId();
+        Long exerciseOrganizationId = exercise.getOrganization().getId();
+
+        if (!workoutOrganizationId.equals(exerciseOrganizationId)) {
+            throw new IllegalArgumentException(
+                    "Exercise does not belong to the same organization as the workout"
             );
         }
     }
