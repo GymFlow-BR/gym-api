@@ -22,6 +22,7 @@ public class StudentWorkoutMapper {
                 studentWorkout.getId(),
                 studentWorkout.getStudent().getId(),
                 studentWorkout.getWorkout().getId(),
+                studentWorkout.getWorkout().getWorkoutName(),
                 studentWorkout.getAssignedAt(),
                 studentWorkout.getStatus(),
                 studentWorkout.getCreatedAt(),
