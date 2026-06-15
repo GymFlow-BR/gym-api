@@ -41,7 +41,7 @@ public class StudentWorkoutService {
         validateStudentBelongsToWorkoutOrganization(student, workout);
         validateStudentWorkoutDoesNotAlreadyExist(studentId, request.workoutId());
 
-        deactiveCurrentWorkoutActiveWorkouts(studentId);
+        deactivateCurrentActiveWorkouts(studentId);
 
         StudentWorkout studentWorkout = studentWorkoutMapper.toEntity(request);
         studentWorkout.setStudent(student);
@@ -85,6 +85,10 @@ public class StudentWorkoutService {
         StudentWorkout studentWorkout = getStudentWorkoutById(studentWorkoutId);
 
         validateStudentWorkoutBelongsToStudent(studentWorkout, studentId);
+
+        if (request.status() == WorkoutStatus.ACTIVE) {
+            deactiveOtherActiveWorkouts(studentId, studentWorkoutId);
+        }
 
         if (request.status() != null) {
             studentWorkout.setStatus(request.status());
@@ -189,13 +193,24 @@ public class StudentWorkoutService {
     }
 
 
-    private void deactiveCurrentWorkoutActiveWorkouts(Long studentId) {
+    private void deactivateCurrentActiveWorkouts(Long studentId) {
         List<StudentWorkout> activeWorkouts = studentWorkoutRepository
                 .findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE);
 
         activeWorkouts.forEach(studentWorkout ->
                 studentWorkout.setStatus(WorkoutStatus.INACTIVE)
         );
+
+        studentWorkoutRepository.saveAll(activeWorkouts);
+    }
+
+    private void deactiveOtherActiveWorkouts(Long studentId, Long studentWorkoutToKeepActive) {
+        List<StudentWorkout> activeWorkouts = studentWorkoutRepository
+                .findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE);
+
+        activeWorkouts.stream()
+                .filter(studentWorkout -> !studentWorkout.getId().equals(studentWorkoutToKeepActive))
+                .forEach(studentWorkout -> studentWorkout.setStatus(WorkoutStatus.INACTIVE));
 
         studentWorkoutRepository.saveAll(activeWorkouts);
     }
