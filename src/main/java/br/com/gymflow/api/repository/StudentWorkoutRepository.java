@@ -16,4 +16,6 @@ public interface StudentWorkoutRepository extends JpaRepository<StudentWorkout, 
     );
 
     boolean existsByStudentIdAndWorkoutId(Long studentId, Long workoutId);
+
+    List<StudentWorkout> findAllByStudentIdAndStatus(Long studentId, WorkoutStatus status);
 }
