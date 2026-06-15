@@ -9,6 +9,7 @@ import br.com.gymflow.api.dto.studentWorkouts.CreateStudentWorkoutRequest;
 import br.com.gymflow.api.dto.studentWorkouts.PatchStudentWorkoutRequest;
 import br.com.gymflow.api.dto.studentWorkouts.StudentCurrentWorkoutResponse;
 import br.com.gymflow.api.dto.studentWorkouts.StudentWorkoutResponse;
+import br.com.gymflow.api.exception.DuplicateResourceException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.StudentWorkoutMapper;
 import br.com.gymflow.api.repository.StudentWorkoutRepository;
@@ -38,6 +39,7 @@ public class StudentWorkoutService {
         Workout workout = getWorkoutById(request.workoutId());
 
         validateStudentBelongsToWorkoutOrganization(student, workout);
+        validateStudentWorkoutDoesNotAlreadyExist(studentId, request.workoutId());
 
         StudentWorkout studentWorkout = studentWorkoutMapper.toEntity(request);
         studentWorkout.setStudent(student);
@@ -168,6 +170,17 @@ public class StudentWorkoutService {
         if (!studentOrganizationId.equals(workoutOrganizationId)) {
             throw new IllegalArgumentException(
                     "Student does not belong to the same organization as the workout"
+            );
+        }
+    }
+
+
+    private void validateStudentWorkoutDoesNotAlreadyExist(Long studentId, Long workoutId) {
+        boolean alreadyExists = studentWorkoutRepository.existsByStudentIdAndWorkoutId(studentId, workoutId);
+
+        if (alreadyExists) {
+            throw new DuplicateResourceException(
+                    "Student already has this workout assigned"
             );
         }
     }
