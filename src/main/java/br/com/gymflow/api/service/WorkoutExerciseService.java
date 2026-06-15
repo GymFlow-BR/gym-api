@@ -6,6 +6,7 @@ import br.com.gymflow.api.domain.WorkoutExercise;
 import br.com.gymflow.api.dto.workoutExercise.CreateWorkoutExerciseRequest;
 import br.com.gymflow.api.dto.workoutExercise.PatchWorkoutExerciseRequest;
 import br.com.gymflow.api.dto.workoutExercise.WorkoutExerciseResponse;
+import br.com.gymflow.api.exception.BusinessRuleException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.WorkoutExerciseMapper;
 import br.com.gymflow.api.repository.ExerciseRepository;
@@ -128,7 +129,7 @@ public class WorkoutExerciseService {
         Long exerciseOrganizationId = exercise.getOrganization().getId();
 
         if (!workoutOrganizationId.equals(exerciseOrganizationId)) {
-            throw new IllegalArgumentException(
+            throw new BusinessRuleException(
                     "Exercise does not belong to the same organization as the workout"
             );
         }
