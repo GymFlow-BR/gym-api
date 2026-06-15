@@ -9,6 +9,7 @@ import br.com.gymflow.api.dto.studentWorkouts.CreateStudentWorkoutRequest;
 import br.com.gymflow.api.dto.studentWorkouts.PatchStudentWorkoutRequest;
 import br.com.gymflow.api.dto.studentWorkouts.StudentCurrentWorkoutResponse;
 import br.com.gymflow.api.dto.studentWorkouts.StudentWorkoutResponse;
+import br.com.gymflow.api.exception.BusinessRuleException;
 import br.com.gymflow.api.exception.DuplicateResourceException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.StudentWorkoutMapper;
@@ -87,7 +88,7 @@ public class StudentWorkoutService {
         validateStudentWorkoutBelongsToStudent(studentWorkout, studentId);
 
         if (request.status() == WorkoutStatus.ACTIVE) {
-            deactiveOtherActiveWorkouts(studentId, studentWorkoutId);
+            deactivateOtherActiveWorkouts(studentId, studentWorkoutId);
         }
 
         if (request.status() != null) {
@@ -144,7 +145,7 @@ public class StudentWorkoutService {
                         "Student not found with id: " + studentId
                 ));
         if (!student.getRole().name().equals("STUDENT")) {
-            throw new IllegalArgumentException("User is not a student with id: " + studentId);
+            throw new BusinessRuleException("User is not a student with id: " + studentId);
         }
         return student;
     }
@@ -175,7 +176,7 @@ public class StudentWorkoutService {
         Long workoutOrganizationId = workout.getTeacher().getOrganization().getId();
 
         if (!studentOrganizationId.equals(workoutOrganizationId)) {
-            throw new IllegalArgumentException(
+            throw new BusinessRuleException(
                     "Student does not belong to the same organization as the workout"
             );
         }
@@ -204,7 +205,7 @@ public class StudentWorkoutService {
         studentWorkoutRepository.saveAll(activeWorkouts);
     }
 
-    private void deactiveOtherActiveWorkouts(Long studentId, Long studentWorkoutToKeepActive) {
+    private void deactivateOtherActiveWorkouts(Long studentId, Long studentWorkoutToKeepActive) {
         List<StudentWorkout> activeWorkouts = studentWorkoutRepository
                 .findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE);
 
