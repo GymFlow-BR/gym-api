@@ -41,6 +41,8 @@ public class StudentWorkoutService {
         validateStudentBelongsToWorkoutOrganization(student, workout);
         validateStudentWorkoutDoesNotAlreadyExist(studentId, request.workoutId());
 
+        deactiveCurrentWorkoutActiveWorkouts(studentId);
+
         StudentWorkout studentWorkout = studentWorkoutMapper.toEntity(request);
         studentWorkout.setStudent(student);
         studentWorkout.setWorkout(workout);
@@ -62,6 +64,7 @@ public class StudentWorkoutService {
                 .map(studentWorkoutMapper::toResponse)
                 .toList();
     }
+
 
     @Transactional(readOnly = true)
     public StudentWorkoutResponse findById(Long studentId,Long studentWorkoutId) {
@@ -183,5 +186,17 @@ public class StudentWorkoutService {
                     "Student already has this workout assigned"
             );
         }
+    }
+
+
+    private void deactiveCurrentWorkoutActiveWorkouts(Long studentId) {
+        List<StudentWorkout> activeWorkouts = studentWorkoutRepository
+                .findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE);
+
+        activeWorkouts.forEach(studentWorkout ->
+                studentWorkout.setStatus(WorkoutStatus.INACTIVE)
+        );
+
+        studentWorkoutRepository.saveAll(activeWorkouts);
     }
 }
