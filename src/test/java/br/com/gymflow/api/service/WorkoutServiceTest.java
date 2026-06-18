@@ -9,6 +9,7 @@ import br.com.gymflow.api.domain.enums.WorkoutStatus;
 import br.com.gymflow.api.dto.workout.CreateWorkoutRequest;
 import br.com.gymflow.api.dto.workout.UpdateWorkoutRequest;
 import br.com.gymflow.api.dto.workout.WorkoutResponse;
+import br.com.gymflow.api.exception.BusinessRuleException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.WorkoutMapper;
 import br.com.gymflow.api.repository.UserRepository;
@@ -105,6 +106,109 @@ class WorkoutServiceTest {
         verify(workoutMapper).toEntity(request);
         verify(workoutRepository).save(workoutToSave);
         verify(workoutMapper).toResponse(savedWorkout);
+    }
+
+    @Test
+    void shouldCreateWorkoutSuccessfullyWhenUserIsAdmin() {
+        // Arrange
+        Long adminId = 1L;
+        Long workoutId = 10L;
+
+        CreateWorkoutRequest request = createWorkoutRequest(
+                adminId,
+                "Treino A"
+        );
+
+        Organization organization = createOrganization(100L);
+        User admin = createTeacher(adminId, organization);
+        admin.setRole(UserRole.ADMIN);
+
+        Workout workoutToSave = createWorkout(
+                null,
+                admin,
+                "Treino A",
+                WorkoutStatus.ACTIVE
+        );
+
+        Workout savedWorkout = createWorkout(
+                workoutId,
+                admin,
+                "Treino A",
+                WorkoutStatus.ACTIVE
+        );
+
+        WorkoutResponse expectedResponse = createWorkoutResponse(
+                workoutId,
+                adminId,
+                "Treino A",
+                WorkoutStatus.ACTIVE
+        );
+
+        when(userRepository.findById(adminId))
+                .thenReturn(Optional.of(admin));
+
+        when(workoutMapper.toEntity(request))
+                .thenReturn(workoutToSave);
+
+        when(workoutRepository.save(workoutToSave))
+                .thenReturn(savedWorkout);
+
+        when(workoutMapper.toResponse(savedWorkout))
+                .thenReturn(expectedResponse);
+
+        // Act
+        WorkoutResponse response = workoutService.create(request);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(workoutId, response.workoutId());
+        assertEquals(adminId, response.teacherId());
+        assertEquals("Treino A", response.workoutName());
+        assertEquals(WorkoutStatus.ACTIVE, response.status());
+
+        assertEquals(admin, workoutToSave.getTeacher());
+        assertEquals(WorkoutStatus.ACTIVE, workoutToSave.getStatus());
+
+        verify(userRepository).findById(adminId);
+        verify(workoutMapper).toEntity(request);
+        verify(workoutRepository).save(workoutToSave);
+        verify(workoutMapper).toResponse(savedWorkout);
+    }
+
+    @Test
+    void shouldThrowBusinessRuleExceptionWhenUserIsStudentOnCreate() {
+        // Arrange
+        Long studentId = 1L;
+
+        CreateWorkoutRequest request = createWorkoutRequest(
+                studentId,
+                "Treino A"
+        );
+
+        Organization organization = createOrganization(100L);
+        User student = createTeacher(studentId, organization);
+        student.setRole(UserRole.STUDENT);
+
+        when(userRepository.findById(studentId))
+                .thenReturn(Optional.of(student));
+
+        // Act + Assert
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> workoutService.create(request)
+        );
+
+        assertEquals(
+                "User is not allowed to create workouts with id: " + studentId,
+                exception.getMessage()
+        );
+
+        verify(userRepository).findById(studentId);
+
+        verifyNoInteractions(
+                workoutRepository,
+                workoutMapper
+        );
     }
 
     @Test
