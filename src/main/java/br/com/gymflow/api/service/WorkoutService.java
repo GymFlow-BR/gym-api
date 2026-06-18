@@ -2,10 +2,12 @@ package br.com.gymflow.api.service;
 
 import br.com.gymflow.api.domain.User;
 import br.com.gymflow.api.domain.Workout;
+import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.domain.enums.WorkoutStatus;
 import br.com.gymflow.api.dto.workout.CreateWorkoutRequest;
 import br.com.gymflow.api.dto.workout.UpdateWorkoutRequest;
 import br.com.gymflow.api.dto.workout.WorkoutResponse;
+import br.com.gymflow.api.exception.BusinessRuleException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.WorkoutMapper;
 import br.com.gymflow.api.repository.UserRepository;
@@ -90,7 +92,14 @@ public class WorkoutService {
     }
 
     private User getTeacherById(Long teacherId) {
-        return userRepository.findById(teacherId)
+
+        User user =  userRepository.findById(teacherId)
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + teacherId));
+
+        if (user.getRole() != UserRole.TEACHER && user.getRole() != UserRole.ADMIN) {
+            throw new BusinessRuleException("User is not allowed to create workouts with id: " + teacherId);
+        }
+
+        return user;
     }
 }
