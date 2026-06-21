@@ -112,7 +112,7 @@ public class ExerciseController {
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
-            @PathVariable Long id
+            @PathVariable("id") Long id
     ) {
         exerciseService.delete(id);
 

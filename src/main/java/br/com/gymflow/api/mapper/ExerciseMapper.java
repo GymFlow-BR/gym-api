@@ -32,6 +32,7 @@ public class ExerciseMapper {
                 exercise.getEquipmentName(),
                 exercise.getImageUrl(),
                 exercise.getVideoUrl(),
+                exercise.getActive(),
                 exercise.getCreatedAt(),
                 exercise.getUpdatedAt()
         );

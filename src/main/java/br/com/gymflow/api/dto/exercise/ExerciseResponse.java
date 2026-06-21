@@ -11,6 +11,7 @@ public record ExerciseResponse(
         String equipmentName,
         String imageUrl,
         String videoUrl,
+        Boolean active,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
