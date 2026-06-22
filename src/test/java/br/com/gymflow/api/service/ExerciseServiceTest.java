@@ -295,6 +295,7 @@ class ExerciseServiceTest {
                 "Halteres",
                 "https://example.com/supino-inclinado.png",
                 "https://example.com/supino-inclinado.mp4",
+                true,
                 null,
                 null
         );
@@ -379,12 +380,20 @@ class ExerciseServiceTest {
         when(exerciseRepository.findById(exerciseId))
                 .thenReturn(Optional.of(exercise));
 
+        when(exerciseRepository.save(exercise))
+                .thenReturn(exercise);
+
         // Act
         exerciseService.delete(exerciseId);
 
         // Assert
+        assertFalse(exercise.getActive());
+
         verify(exerciseRepository).findById(exerciseId);
-        verify(exerciseRepository).delete(exercise);
+        verify(exerciseRepository).save(exercise);
+
+        verify(exerciseRepository, never())
+                .delete(any(Exercise.class));
 
         verifyNoInteractions(
                 organizationRepository,
@@ -419,6 +428,9 @@ class ExerciseServiceTest {
         );
 
         verify(exerciseRepository, never())
+                .save(any(Exercise.class));
+
+        verify(exerciseRepository, never())
                 .delete(any(Exercise.class));
     }
 
@@ -449,6 +461,7 @@ class ExerciseServiceTest {
             Long exerciseId,
             Long organizationId,
             String exerciseName
+
     ) {
         return new ExerciseResponse(
                 exerciseId,
@@ -459,6 +472,7 @@ class ExerciseServiceTest {
                 "Barra",
                 "https://example.com/supino.png",
                 "https://example.com/supino.mp4",
+                true,
                 null,
                 null
         );
@@ -472,6 +486,7 @@ class ExerciseServiceTest {
         exercise.setMuscleGroup("Peito");
         exercise.setDescription("Exercício para fortalecimento do peitoral");
         exercise.setEquipmentName("Barra");
+        exercise.setActive(true);
         exercise.setImageUrl("https://example.com/supino.png");
         exercise.setVideoUrl("https://example.com/supino.mp4");
         return exercise;

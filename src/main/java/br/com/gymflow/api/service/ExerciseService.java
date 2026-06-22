@@ -66,7 +66,9 @@ public class ExerciseService {
     public void delete(Long id) {
         Exercise exercise = getExerciseById(id);
 
-        exerciseRepository.delete(exercise);
+        exercise.setActive(false);
+
+        exerciseRepository.save(exercise);
     }
 
 
