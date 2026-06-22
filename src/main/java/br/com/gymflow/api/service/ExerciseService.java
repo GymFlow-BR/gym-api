@@ -45,6 +45,16 @@ public class ExerciseService {
     }
 
     @Transactional(readOnly = true)
+    public List<ExerciseResponse> findAllByOrganizationId(Long organizationId) {
+        getOrganizationById(organizationId);
+
+        return exerciseRepository.findByOrganizationId(organizationId)
+                .stream()
+                .map(exerciseMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public ExerciseResponse findById(Long id) {
         Exercise exercise = getExerciseById(id);
 
