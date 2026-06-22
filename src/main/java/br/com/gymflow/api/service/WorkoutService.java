@@ -10,6 +10,7 @@ import br.com.gymflow.api.dto.workout.WorkoutResponse;
 import br.com.gymflow.api.exception.BusinessRuleException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.WorkoutMapper;
+import br.com.gymflow.api.repository.OrganizationRepository;
 import br.com.gymflow.api.repository.UserRepository;
 import br.com.gymflow.api.repository.WorkoutRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class WorkoutService {
     private final WorkoutRepository workoutRepository;
     private final WorkoutMapper workoutMapper;
     private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
 
 
     @Transactional
@@ -45,6 +47,16 @@ public class WorkoutService {
     @Transactional(readOnly = true)
     public List<WorkoutResponse> findAll() {
         return workoutRepository.findAll()
+                .stream()
+                .map(workoutMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkoutResponse> findAllByOrganizationId(Long organizationId) {
+        getOrganizationById(organizationId);
+
+        return workoutRepository.findByTeacherOrganizationId(organizationId)
                 .stream()
                 .map(workoutMapper::toResponse)
                 .toList();
@@ -101,5 +113,10 @@ public class WorkoutService {
         }
 
         return user;
+    }
+
+    private void getOrganizationById(Long organizationId) {
+        organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found with id: " + organizationId));
     }
 }

@@ -98,6 +98,97 @@ class ExerciseServiceTest {
     }
 
     @Test
+    void shouldFindAllExercisesByOrganizationIdSuccessfully() {
+        // Arrange
+        Long organizationId = 100L;
+
+        Organization organization = createOrganization(organizationId);
+
+        Exercise exerciseA = createExercise(
+                10L,
+                organization,
+                "Supino reto"
+        );
+
+        Exercise exerciseB = createExercise(
+                20L,
+                organization,
+                "Agachamento livre"
+        );
+
+        ExerciseResponse responseA = createExerciseResponse(
+                10L,
+                organizationId,
+                "Supino reto"
+        );
+
+        ExerciseResponse responseB = createExerciseResponse(
+                20L,
+                organizationId,
+                "Agachamento livre"
+        );
+
+        when(organizationRepository.findById(organizationId))
+                .thenReturn(Optional.of(organization));
+
+        when(exerciseRepository.findByOrganizationId(organizationId))
+                .thenReturn(List.of(exerciseA, exerciseB));
+
+        when(exerciseMapper.toResponse(exerciseA))
+                .thenReturn(responseA);
+
+        when(exerciseMapper.toResponse(exerciseB))
+                .thenReturn(responseB);
+
+        // Act
+        List<ExerciseResponse> response = exerciseService.findAllByOrganizationId(organizationId);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(2, response.size());
+
+        assertEquals(10L, response.get(0).id());
+        assertEquals(organizationId, response.get(0).organizationId());
+        assertEquals("Supino reto", response.get(0).exerciseName());
+
+        assertEquals(20L, response.get(1).id());
+        assertEquals(organizationId, response.get(1).organizationId());
+        assertEquals("Agachamento livre", response.get(1).exerciseName());
+
+        verify(organizationRepository).findById(organizationId);
+        verify(exerciseRepository).findByOrganizationId(organizationId);
+        verify(exerciseMapper).toResponse(exerciseA);
+        verify(exerciseMapper).toResponse(exerciseB);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenOrganizationDoesNotExistOnFindAllByOrganizationId() {
+        // Arrange
+        Long organizationId = 100L;
+
+        when(organizationRepository.findById(organizationId))
+                .thenReturn(Optional.empty());
+
+        // Act + Assert
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> exerciseService.findAllByOrganizationId(organizationId)
+        );
+
+        assertEquals(
+                "Organization not found with id: " + organizationId,
+                exception.getMessage()
+        );
+
+        verify(organizationRepository).findById(organizationId);
+
+        verify(exerciseRepository, never())
+                .findByOrganizationId(anyLong());
+
+        verifyNoInteractions(exerciseMapper);
+    }
+
+    @Test
     void shouldThrowResourceNotFoundExceptionWhenOrganizationDoesNotExistOnCreate() {
         // Arrange
         Long organizationId = 100L;

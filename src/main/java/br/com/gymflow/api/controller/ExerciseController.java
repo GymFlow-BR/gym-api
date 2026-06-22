@@ -62,6 +62,23 @@ public class ExerciseController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Listar exercícios por organização",
+            description = "Retorna todos os exercícios vinculados a uma organização específica."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Exercícios encontrados"),
+            @ApiResponse(responseCode = "404", description = "Organização não encontrada")
+    })
+    @GetMapping("/by-organization/{organizationId}")
+    public ResponseEntity<List<ExerciseResponse>> findAllByOrganizationId(
+            @PathVariable Long organizationId
+    ) {
+        List<ExerciseResponse> response = exerciseService.findAllByOrganizationId(organizationId);
+
+        return ResponseEntity.ok(response);
+    }
+
 
     @Operation(
             summary = "Buscar exercício por ID",

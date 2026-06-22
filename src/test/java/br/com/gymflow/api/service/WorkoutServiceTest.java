@@ -12,6 +12,7 @@ import br.com.gymflow.api.dto.workout.WorkoutResponse;
 import br.com.gymflow.api.exception.BusinessRuleException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.WorkoutMapper;
+import br.com.gymflow.api.repository.OrganizationRepository;
 import br.com.gymflow.api.repository.UserRepository;
 import br.com.gymflow.api.repository.WorkoutRepository;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,9 @@ class WorkoutServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private OrganizationRepository organizationRepository;
 
     @InjectMocks
     private WorkoutService workoutService;
@@ -671,6 +675,103 @@ class WorkoutServiceTest {
         verify(workoutMapper).toResponse(updatedWorkout);
 
         verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void shouldFindAllWorkoutsByOrganizationIdSuccessfully() {
+        // Arrange
+        Long organizationId = 100L;
+
+        Organization organization = createOrganization(organizationId);
+
+        User teacher = createTeacher(1L, organization);
+
+        Workout workoutA = createWorkout(
+                10L,
+                teacher,
+                "Treino A",
+                WorkoutStatus.ACTIVE
+        );
+
+        Workout workoutB = createWorkout(
+                20L,
+                teacher,
+                "Treino B",
+                WorkoutStatus.ACTIVE
+        );
+
+        WorkoutResponse responseA = createWorkoutResponse(
+                10L,
+                teacher.getId(),
+                "Treino A",
+                WorkoutStatus.ACTIVE
+        );
+
+        WorkoutResponse responseB = createWorkoutResponse(
+                20L,
+                teacher.getId(),
+                "Treino B",
+                WorkoutStatus.ACTIVE
+        );
+
+        when(organizationRepository.findById(organizationId))
+                .thenReturn(Optional.of(organization));
+
+        when(workoutRepository.findByTeacherOrganizationId(organizationId))
+                .thenReturn(List.of(workoutA, workoutB));
+
+        when(workoutMapper.toResponse(workoutA))
+                .thenReturn(responseA);
+
+        when(workoutMapper.toResponse(workoutB))
+                .thenReturn(responseB);
+
+        // Act
+        List<WorkoutResponse> response = workoutService.findAllByOrganizationId(organizationId);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(2, response.size());
+
+        assertEquals(10L, response.get(0).workoutId());
+        assertEquals("Treino A", response.get(0).workoutName());
+        assertEquals(WorkoutStatus.ACTIVE, response.get(0).status());
+
+        assertEquals(20L, response.get(1).workoutId());
+        assertEquals("Treino B", response.get(1).workoutName());
+        assertEquals(WorkoutStatus.ACTIVE, response.get(1).status());
+
+        verify(organizationRepository).findById(organizationId);
+        verify(workoutRepository).findByTeacherOrganizationId(organizationId);
+        verify(workoutMapper).toResponse(workoutA);
+        verify(workoutMapper).toResponse(workoutB);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenOrganizationDoesNotExistOnFindAllByOrganizationId() {
+        // Arrange
+        Long organizationId = 100L;
+
+        when(organizationRepository.findById(organizationId))
+                .thenReturn(Optional.empty());
+
+        // Act + Assert
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> workoutService.findAllByOrganizationId(organizationId)
+        );
+
+        assertEquals(
+                "Organization not found with id: " + organizationId,
+                exception.getMessage()
+        );
+
+        verify(organizationRepository).findById(organizationId);
+
+        verify(workoutRepository, never())
+                .findByTeacherOrganizationId(anyLong());
+
+        verifyNoInteractions(workoutMapper);
     }
 
 

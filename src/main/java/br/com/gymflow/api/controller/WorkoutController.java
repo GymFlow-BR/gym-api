@@ -63,6 +63,23 @@ public class WorkoutController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Listar treinos modelo por organização",
+            description = "Retorna todos os treinos modelo criados por professores de uma organização específica."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Treinos modelo encontrados"),
+            @ApiResponse(responseCode = "404", description = "Organização não encontrada")
+    })
+    @GetMapping("/by-organization/{organizationId}")
+    public ResponseEntity<List<WorkoutResponse>> findAllByOrganizationId(
+            @PathVariable  Long organizationId
+    ) {
+        List<WorkoutResponse> response = workoutService.findAllByOrganizationId(organizationId);
+
+        return ResponseEntity.ok(response);
+    }
+
 
     @Operation(
             summary = "Buscar treino modelo por ID",
