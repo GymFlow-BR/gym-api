@@ -14,7 +14,6 @@ import br.com.gymflow.api.repository.OrganizationRepository;
 import br.com.gymflow.api.repository.UserRepository;
 import br.com.gymflow.api.repository.WorkoutRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
