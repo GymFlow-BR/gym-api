@@ -26,8 +26,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import br.com.gymflow.api.config.security.SecurityConfig;
+import org.springframework.context.annotation.Import;
 
 @WebMvcTest(WorkoutController.class)
+@Import(SecurityConfig.class)
 class WorkoutControllerTest {
 
     @Autowired
