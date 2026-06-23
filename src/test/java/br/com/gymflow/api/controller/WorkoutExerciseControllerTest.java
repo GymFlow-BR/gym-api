@@ -22,7 +22,10 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import br.com.gymflow.api.config.security.SecurityConfig;
+import org.springframework.context.annotation.Import;
 
+@Import(SecurityConfig.class)
 @WebMvcTest(WorkoutExerciseController.class)
 class WorkoutExerciseControllerTest {
 
