@@ -33,3 +33,9 @@ logging:
     org.hibernate.SQL: warn
     org.hibernate.orm.jdbc.bind: warn
     org.flywaydb: info
+
+api:
+  security:
+    token:
+      secret: ${JWT_SECRET:dev-secret}
+      expiration-hours: ${JWT_EXPIRATION_HOURS:2}
