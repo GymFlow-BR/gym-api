@@ -16,6 +16,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
@@ -30,7 +31,10 @@ public class AuthService {
             throw new BusinessRuleException("User is inactive");
         }
 
+        String token = jwtService.generateToken(user);
+
         return new LoginResponse(
+                token,
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
