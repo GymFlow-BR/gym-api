@@ -33,4 +33,14 @@ public class JwtService {
                 .withExpiresAt(expiresAt)
                 .sign(algorithm);
     }
+
+    public String validateToken(String token) {
+        Algorithm algorithm = Algorithm.HMAC256(secret);
+
+        return JWT.require(algorithm)
+                .withIssuer("gymflow-api")
+                .build()
+                .verify(token)
+                .getSubject();
+    }
 }

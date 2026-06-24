@@ -1,5 +1,6 @@
 package br.com.gymflow.api.controller;
 
+import br.com.gymflow.api.config.security.JwtAuthenticationFilter;
 import br.com.gymflow.api.dto.workoutExercise.CreateWorkoutExerciseRequest;
 import br.com.gymflow.api.dto.workoutExercise.PatchWorkoutExerciseRequest;
 import br.com.gymflow.api.dto.workoutExercise.WorkoutExerciseResponse;
@@ -8,6 +9,7 @@ import br.com.gymflow.api.service.WorkoutExerciseService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -22,11 +24,10 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import br.com.gymflow.api.config.security.SecurityConfig;
-import org.springframework.context.annotation.Import;
 
-@Import(SecurityConfig.class)
+
 @WebMvcTest(WorkoutExerciseController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class WorkoutExerciseControllerTest {
 
     @Autowired
@@ -34,6 +35,9 @@ class WorkoutExerciseControllerTest {
 
     @MockitoBean
     private WorkoutExerciseService workoutExerciseService;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
     private ObjectMapper objectMapper;
