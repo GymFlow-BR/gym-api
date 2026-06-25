@@ -28,6 +28,19 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
+
+                        .requestMatchers("/api/organizations/**")
+                        .hasRole("ADMIN")
+
+                        .requestMatchers("/api/exercises/**")
+                        .hasAnyRole("ADMIN", "TEACHER")
+
+                        .requestMatchers("/api/workouts/**")
+                        .hasAnyRole("ADMIN", "TEACHER")
+
+                        .requestMatchers("/api/students/**")
+                        .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
