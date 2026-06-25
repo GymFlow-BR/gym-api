@@ -10,6 +10,12 @@
 -- - Validação inicial do frontend
 --
 -- Não usar em produção.
+--
+-- Credenciais padrão de desenvolvimento:
+-- - teacher.dev@gymflow.com / 123456
+-- - student.dev@gymflow.com / 123456
+--
+-- As senhas são armazenadas como hash BCrypt.
 -- ============================================================
 
 
@@ -53,7 +59,7 @@ SELECT
     o.organization_id,
     'Professor Dev',
     'teacher.dev@gymflow.com',
-    'dev-password',
+    '$2a$10$kQ9AoAuxWIJEJf0zsnLR2.9zaQlmraLgKYWe.YrGcinT8OpmkJ/zi',
     'TEACHER',
     true
 FROM organizations o
@@ -76,7 +82,7 @@ SELECT
     o.organization_id,
     'Aluno Dev',
     'student.dev@gymflow.com',
-    'dev-password',
+    '$2a$10$kQ9AoAuxWIJEJf0zsnLR2.9zaQlmraLgKYWe.YrGcinT8OpmkJ/zi',
     'STUDENT',
     true
 FROM organizations o
