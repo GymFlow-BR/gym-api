@@ -1,5 +1,6 @@
 package br.com.gymflow.api.service;
 
+import br.com.gymflow.api.config.security.StudentAccessValidator;
 import br.com.gymflow.api.domain.*;
 import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.domain.enums.WorkoutStatus;
@@ -46,6 +47,9 @@ class StudentWorkoutServiceTest {
 
     @Mock
     private WorkoutExerciseRepository workoutExerciseRepository;
+
+    @Mock
+    private StudentAccessValidator studentAccessValidator;
 
     @InjectMocks
     private StudentWorkoutService studentWorkoutService;

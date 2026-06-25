@@ -1,5 +1,6 @@
 package br.com.gymflow.api.service;
 
+import br.com.gymflow.api.config.security.StudentAccessValidator;
 import br.com.gymflow.api.domain.StudentWorkout;
 import br.com.gymflow.api.domain.User;
 import br.com.gymflow.api.domain.Workout;
@@ -33,9 +34,11 @@ public class StudentWorkoutService {
     private final WorkoutRepository workoutRepository;
     private final UserRepository userRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
+    private final StudentAccessValidator studentAccessValidator;
 
     @Transactional
     public StudentWorkoutResponse create(Long studentId, CreateStudentWorkoutRequest request) {
+        studentAccessValidator.validateStudentAccess(studentId);
         User student = getStudentById(studentId);
         Workout workout = getWorkoutById(request.workoutId());
 
@@ -58,6 +61,7 @@ public class StudentWorkoutService {
 
     @Transactional(readOnly = true)
     public List<StudentWorkoutResponse> findAllByStudentId(Long studentId) {
+        studentAccessValidator.validateStudentAccess(studentId);
         getStudentById(studentId);
 
         return studentWorkoutRepository.findAllByStudentId(studentId)
@@ -69,6 +73,7 @@ public class StudentWorkoutService {
 
     @Transactional(readOnly = true)
     public StudentWorkoutResponse findById(Long studentId,Long studentWorkoutId) {
+        studentAccessValidator.validateStudentAccess(studentId);
         StudentWorkout studentWorkout = getStudentWorkoutById(studentWorkoutId);
 
         validateStudentWorkoutBelongsToStudent(studentWorkout, studentId);
@@ -83,6 +88,8 @@ public class StudentWorkoutService {
             Long studentWorkoutId,
             PatchStudentWorkoutRequest request
     ) {
+        studentAccessValidator.validateStudentAccess(studentId);
+
         StudentWorkout studentWorkout = getStudentWorkoutById(studentWorkoutId);
 
         validateStudentWorkoutBelongsToStudent(studentWorkout, studentId);
@@ -103,6 +110,8 @@ public class StudentWorkoutService {
 
     @Transactional
     public void delete(Long studentId, Long studentWorkoutId) {
+        studentAccessValidator.validateStudentAccess(studentId);
+
         StudentWorkout studentWorkout = getStudentWorkoutById(studentWorkoutId);
 
         validateStudentWorkoutBelongsToStudent(studentWorkout, studentId);
@@ -115,6 +124,8 @@ public class StudentWorkoutService {
 
     @Transactional(readOnly = true)
     public StudentCurrentWorkoutResponse findCurrentWorkout(Long studentId) {
+        studentAccessValidator.validateStudentAccess(studentId);
+
         getStudentById(studentId);
 
         StudentWorkout studentWorkout = studentWorkoutRepository
