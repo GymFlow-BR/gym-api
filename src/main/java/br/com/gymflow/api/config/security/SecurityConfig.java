@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -38,8 +39,20 @@ public class SecurityConfig {
                         .requestMatchers("/api/workouts/**")
                         .hasAnyRole("ADMIN", "TEACHER")
 
-                        .requestMatchers("/api/students/**")
+                        .requestMatchers(HttpMethod.GET, "/api/students/**")
                         .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+
+                        .requestMatchers(HttpMethod.POST, "/api/students/**")
+                        .hasAnyRole("ADMIN", "TEACHER")
+
+                        .requestMatchers(HttpMethod.PATCH, "/api/students/**")
+                        .hasAnyRole("ADMIN", "TEACHER")
+
+                        .requestMatchers(HttpMethod.DELETE, "/api/students/**")
+                        .hasAnyRole("ADMIN", "TEACHER")
+
+                        .requestMatchers(HttpMethod.PUT, "/api/students/**")
+                        .hasAnyRole("ADMIN", "TEACHER")
 
                         .anyRequest().authenticated()
                 )
