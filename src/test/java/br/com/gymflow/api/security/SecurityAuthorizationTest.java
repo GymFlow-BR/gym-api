@@ -1,0 +1,153 @@
+package br.com.gymflow.api.security;
+
+import br.com.gymflow.api.auth.JwtService;
+import br.com.gymflow.api.domain.User;
+import br.com.gymflow.api.domain.enums.UserRole;
+import br.com.gymflow.api.repository.UserRepository;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class SecurityAuthorizationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @MockitoBean
+    private UserRepository userRepository;
+
+    @Test
+    void shouldBlockPrivateEndpointWhenTokenIsMissing() throws Exception {
+        mockMvc.perform(get("/api/exercises"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowTeacherToAccessExercisesEndpoint() throws Exception {
+        User teacher = createUser(1L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+
+        mockMvc.perform(get("/api/exercises")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldBlockStudentFromAccessingExercisesEndpoint() throws Exception {
+        User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(student);
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(get("/api/exercises")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    private User createUser(Long id, String email, UserRole role) {
+        User user = new User();
+        user.setId(id);
+        user.setName("Test User");
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode("123456"));
+        user.setRole(role);
+        user.setActive(true);
+        return user;
+    }
+
+    @Test
+    void shouldBlockPrivateEndpointWhenTokenIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/exercises")
+                        .header("Authorization", "Bearer invalid-token"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowStudentToAccessStudentsGetEndpoint() throws Exception {
+        User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(student);
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(get("/api/students/{studentId}/workouts/current", student.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(result -> {
+                    int status = result.getResponse().getStatus();
+
+                    assertNotEquals(401, status);
+                    assertNotEquals(403, status);
+                });
+    }
+
+    @Test
+    void shouldBlockStudentFromPostingToStudentsEndpoint() throws Exception {
+        User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(student);
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(post("/api/students/{studentId}/workouts", student.getId())
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                            {
+                              "workoutId": 1
+                            }
+                            """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldBlockStudentFromPatchingStudentsEndpoint() throws Exception {
+        User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(student);
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(patch("/api/students/{studentId}/workouts/{studentWorkoutId}", student.getId(), 1L)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                            {
+                              "status": "INACTIVE"
+                            }
+                            """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldBlockStudentFromDeletingStudentsEndpoint() throws Exception {
+        User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(student);
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(delete("/api/students/{studentId}/workouts/{studentWorkoutId}", student.getId(), 1L)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+}
