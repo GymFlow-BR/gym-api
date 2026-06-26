@@ -68,16 +68,7 @@ class SecurityAuthorizationTest {
                 .andExpect(status().isForbidden());
     }
 
-    private User createUser(Long id, String email, UserRole role) {
-        User user = new User();
-        user.setId(id);
-        user.setName("Test User");
-        user.setEmail(email);
-        user.setPasswordHash(passwordEncoder.encode("123456"));
-        user.setRole(role);
-        user.setActive(true);
-        return user;
-    }
+
 
     @Test
     void shouldBlockPrivateEndpointWhenTokenIsInvalid() throws Exception {
@@ -149,5 +140,16 @@ class SecurityAuthorizationTest {
         mockMvc.perform(delete("/api/students/{studentId}/workouts/{studentWorkoutId}", student.getId(), 1L)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
+    }
+
+    private User createUser(Long id, String email, UserRole role) {
+        User user = new User();
+        user.setId(id);
+        user.setName("Test User");
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode("123456"));
+        user.setRole(role);
+        user.setActive(true);
+        return user;
     }
 }
