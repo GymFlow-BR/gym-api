@@ -4,6 +4,7 @@ import br.com.gymflow.api.domain.User;
 import br.com.gymflow.api.dto.user.CreateUserRequest;
 import br.com.gymflow.api.dto.user.UserResponse;
 import org.springframework.stereotype.Component;
+import br.com.gymflow.api.dto.user.UpdateUserRequest;
 
 @Component
 public class UserMapper {
@@ -30,5 +31,19 @@ public class UserMapper {
                 user.getActive(),
                 user.getCreatedAt()
         );
+    }
+
+    public void updateEntity(User user, UpdateUserRequest request) {
+        if (request.name() != null) {
+            user.setName(request.name());
+        }
+
+        if (request.email() != null) {
+            user.setEmail(request.email());
+        }
+
+        if (request.active() != null) {
+            user.setActive(request.active());
+        }
     }
 }

@@ -39,6 +39,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/workouts/**")
                         .hasAnyRole("ADMIN", "TEACHER")
 
+                        .requestMatchers(HttpMethod.POST, "/api/users")
+                        .hasAnyRole("ADMIN", "TEACHER")
+
                         .requestMatchers("/api/users/**")
                         .hasRole("ADMIN")
 

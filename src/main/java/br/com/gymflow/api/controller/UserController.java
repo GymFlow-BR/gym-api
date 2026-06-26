@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import br.com.gymflow.api.dto.user.UpdateUserRequest;
 
 import java.util.List;
 
@@ -94,6 +95,44 @@ public class UserController {
         List<UserResponse> response = userService.findAllByOrganizationIdAndRole(organizationId, role);
 
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Atualizar usuário",
+            description = "Atualiza parcialmente os dados de um usuário."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Usuário atualizado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou regra de negócio violada"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+    })
+    @PatchMapping("/{id}")
+    public ResponseEntity<UserResponse> patch(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdateUserRequest request
+    ) {
+        UserResponse response = userService.patch(id, request);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Inativar usuário",
+            description = "Inativa um usuário, alterando seu status para inactive."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Usuário inativado com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Acesso negado"),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id
+    ) {
+        userService.delete(id);
+
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(
