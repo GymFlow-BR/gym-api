@@ -1,6 +1,7 @@
 package br.com.gymflow.api.security;
 
 import br.com.gymflow.api.auth.JwtService;
+import br.com.gymflow.api.domain.Organization;
 import br.com.gymflow.api.domain.User;
 import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.repository.UserRepository;
@@ -142,7 +143,196 @@ class SecurityAuthorizationTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void shouldAllowAdminToAccessUsersGetEndpoint() throws Exception {
+        User admin = createUser(1L, "admin.dev@gymflow.com", UserRole.ADMIN);
+        String token = jwtService.generateToken(admin);
+
+        when(userRepository.findByEmail(admin.getEmail())).thenReturn(Optional.of(admin));
+
+        mockMvc.perform(get("/api/users")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(result -> {
+                    int status = result.getResponse().getStatus();
+
+                    assertNotEquals(401, status);
+                    assertNotEquals(403, status);
+                });
+    }
+
+    @Test
+    void shouldBlockTeacherFromAccessingUsersGetEndpoint() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+
+        mockMvc.perform(get("/api/users")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldBlockStudentFromAccessingUsersGetEndpoint() throws Exception {
+        User student = createUser(3L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(student);
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(get("/api/users")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowTeacherToAccessUsersPostEndpoint() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+
+        mockMvc.perform(post("/api/users")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                            {
+                              "organizationId": 1,
+                              "name": "",
+                              "email": "invalid-email",
+                              "password": "123",
+                              "role": "STUDENT"
+                            }
+                            """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldBlockStudentFromAccessingUsersPostEndpoint() throws Exception {
+        User student = createUser(3L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(student);
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(post("/api/users")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                            {
+                              "organizationId": 1,
+                              "name": "Aluno Teste",
+                              "email": "student.test@gymflow.com",
+                              "password": "123456",
+                              "role": "STUDENT"
+                            }
+                            """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowAdminToAccessUsersPatchEndpoint() throws Exception {
+        User admin = createUser(1L, "admin.dev@gymflow.com", UserRole.ADMIN);
+        String token = jwtService.generateToken(admin);
+
+        when(userRepository.findByEmail(admin.getEmail())).thenReturn(Optional.of(admin));
+
+        mockMvc.perform(patch("/api/users/{id}", 2L)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                            {
+                              "name": "Aluno Atualizado"
+                            }
+                            """))
+                .andExpect(result -> {
+                    int status = result.getResponse().getStatus();
+
+                    assertNotEquals(401, status);
+                    assertNotEquals(403, status);
+                });
+    }
+
+    @Test
+    void shouldBlockTeacherFromAccessingUsersPatchEndpoint() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+
+        mockMvc.perform(patch("/api/users/{id}", 3L)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                            {
+                              "name": "Aluno Atualizado"
+                            }
+                            """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldBlockStudentFromAccessingUsersPatchEndpoint() throws Exception {
+        User student = createUser(3L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(student);
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(patch("/api/users/{id}", 3L)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                            {
+                              "name": "Aluno Atualizado"
+                            }
+                            """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldAllowAdminToAccessUsersDeleteEndpoint() throws Exception {
+        User admin = createUser(1L, "admin.dev@gymflow.com", UserRole.ADMIN);
+        String token = jwtService.generateToken(admin);
+
+        when(userRepository.findByEmail(admin.getEmail())).thenReturn(Optional.of(admin));
+
+        mockMvc.perform(delete("/api/users/{id}", 2L)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(result -> {
+                    int status = result.getResponse().getStatus();
+
+                    assertNotEquals(401, status);
+                    assertNotEquals(403, status);
+                });
+    }
+
+    @Test
+    void shouldBlockTeacherFromAccessingUsersDeleteEndpoint() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+
+        mockMvc.perform(delete("/api/users/{id}", 3L)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldBlockStudentFromAccessingUsersDeleteEndpoint() throws Exception {
+        User student = createUser(3L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(student);
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(delete("/api/users/{id}", 3L)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
     private User createUser(Long id, String email, UserRole role) {
+        Organization organization = new Organization();
+        organization.setId(1L);
+        organization.setOrganizationName("GymFlow Academy Dev");
+
         User user = new User();
         user.setId(id);
         user.setName("Test User");
@@ -150,6 +340,8 @@ class SecurityAuthorizationTest {
         user.setPasswordHash(passwordEncoder.encode("123456"));
         user.setRole(role);
         user.setActive(true);
+        user.setOrganization(organization);
+
         return user;
     }
 }
