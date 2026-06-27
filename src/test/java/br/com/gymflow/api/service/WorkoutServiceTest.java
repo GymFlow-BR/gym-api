@@ -292,39 +292,27 @@ class WorkoutServiceTest {
                 WorkoutStatus.ACTIVE
         );
 
-        WorkoutResponse responseB = createWorkoutResponse(
-                20L,
-                teacherId,
-                "Treino B",
-                WorkoutStatus.INACTIVE
-        );
-
-        when(workoutRepository.findByTeacherOrganizationId(100L))
-                .thenReturn(List.of(workoutA, workoutB));
+        when(workoutRepository.findByTeacherOrganizationIdAndStatus(100L, WorkoutStatus.ACTIVE))
+                .thenReturn(List.of(workoutA));
 
         when(workoutMapper.toResponse(workoutA))
                 .thenReturn(responseA);
 
-        when(workoutMapper.toResponse(workoutB))
-                .thenReturn(responseB);
-
         List<WorkoutResponse> response = workoutService.findAll();
 
         assertNotNull(response);
-        assertEquals(2, response.size());
+        assertEquals(1, response.size());
 
         assertEquals(10L, response.get(0).workoutId());
         assertEquals("Treino A", response.get(0).workoutName());
         assertEquals(WorkoutStatus.ACTIVE, response.get(0).status());
 
-        assertEquals(20L, response.get(1).workoutId());
-        assertEquals("Treino B", response.get(1).workoutName());
-        assertEquals(WorkoutStatus.INACTIVE, response.get(1).status());
-
-        verify(workoutRepository).findByTeacherOrganizationId(100L);
+        verify(workoutRepository).findByTeacherOrganizationIdAndStatus(100L, WorkoutStatus.ACTIVE);
+        verify(workoutRepository, never()).findByTeacherOrganizationId(100L);
         verify(workoutRepository, never()).findAll();
+
         verify(workoutMapper).toResponse(workoutA);
-        verify(workoutMapper).toResponse(workoutB);
+        verify(workoutMapper, never()).toResponse(workoutB);
 
         verifyNoInteractions(userRepository);
     }
@@ -738,7 +726,7 @@ class WorkoutServiceTest {
         when(organizationRepository.findById(organizationId))
                 .thenReturn(Optional.of(organization));
 
-        when(workoutRepository.findByTeacherOrganizationId(organizationId))
+        when(workoutRepository.findByTeacherOrganizationIdAndStatus(organizationId, WorkoutStatus.ACTIVE))
                 .thenReturn(List.of(workoutA, workoutB));
 
         when(workoutMapper.toResponse(workoutA))
@@ -762,10 +750,8 @@ class WorkoutServiceTest {
         assertEquals("Treino B", response.get(1).workoutName());
         assertEquals(WorkoutStatus.ACTIVE, response.get(1).status());
 
-        verify(organizationRepository).findById(organizationId);
-        verify(workoutRepository).findByTeacherOrganizationId(organizationId);
-        verify(workoutMapper).toResponse(workoutA);
-        verify(workoutMapper).toResponse(workoutB);
+        verify(workoutRepository).findByTeacherOrganizationIdAndStatus(organizationId, WorkoutStatus.ACTIVE);
+        verify(workoutRepository, never()).findByTeacherOrganizationId(organizationId);
     }
 
     @Test
@@ -796,6 +782,9 @@ class WorkoutServiceTest {
 
         verify(workoutRepository, never())
                 .findByTeacherOrganizationId(anyLong());
+
+        verify(workoutRepository, never())
+                .findByTeacherOrganizationIdAndStatus(anyLong(), any());
 
         verifyNoInteractions(workoutMapper);
     }

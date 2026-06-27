@@ -145,7 +145,7 @@ class ExerciseServiceTest {
         Exercise exercise = createExercise(1L, 1L);
         ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
 
-        when(exerciseRepository.findByOrganizationId(1L)).thenReturn(List.of(exercise));
+        when(exerciseRepository.findByOrganizationIdAndActiveTrue(1L)).thenReturn(List.of(exercise));
         when(exerciseMapper.toResponse(exercise)).thenReturn(expectedResponse);
 
         List<ExerciseResponse> response = exerciseService.findAll();
@@ -154,9 +154,8 @@ class ExerciseServiceTest {
         assertEquals(1, response.size());
         assertSame(expectedResponse, response.get(0));
 
-        verify(exerciseRepository).findByOrganizationId(1L);
-        verify(exerciseRepository, never()).findAll();
-        verify(exerciseMapper).toResponse(exercise);
+        verify(exerciseRepository).findByOrganizationIdAndActiveTrue(1L);
+        verify(exerciseRepository, never()).findByOrganizationId(1L);
     }
 
     @Test
@@ -169,7 +168,7 @@ class ExerciseServiceTest {
         ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
 
         when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
-        when(exerciseRepository.findByOrganizationId(1L)).thenReturn(List.of(exercise));
+        when(exerciseRepository.findByOrganizationIdAndActiveTrue(1L)).thenReturn(List.of(exercise));
         when(exerciseMapper.toResponse(exercise)).thenReturn(expectedResponse);
 
         List<ExerciseResponse> response = exerciseService.findAllByOrganizationId(1L);
@@ -179,7 +178,8 @@ class ExerciseServiceTest {
         assertSame(expectedResponse, response.get(0));
 
         verify(organizationRepository).findById(1L);
-        verify(exerciseRepository).findByOrganizationId(1L);
+        verify(exerciseRepository).findByOrganizationIdAndActiveTrue(1L);
+        verify(exerciseRepository, never()).findByOrganizationId(1L);
         verify(exerciseMapper).toResponse(exercise);
     }
 
