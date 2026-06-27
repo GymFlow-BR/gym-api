@@ -1,6 +1,5 @@
 package br.com.gymflow.api.service;
 
-
 import br.com.gymflow.api.domain.Exercise;
 import br.com.gymflow.api.domain.Organization;
 import br.com.gymflow.api.dto.exercise.CreateExerciseRequest;
@@ -13,6 +12,10 @@ import br.com.gymflow.api.repository.OrganizationRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import br.com.gymflow.api.domain.User;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 
@@ -26,6 +29,8 @@ public class ExerciseService {
 
     @Transactional
     public ExerciseResponse create(CreateExerciseRequest request) {
+        validateSameOrganization(request.organizationId());
+
         Organization organization = getOrganizationById(request.organizationId());
 
         Exercise exercise = exerciseMapper.toEntity(request);
@@ -38,7 +43,9 @@ public class ExerciseService {
 
     @Transactional(readOnly = true)
     public List<ExerciseResponse> findAll() {
-        return exerciseRepository.findAll()
+        Long organizationId = getAuthenticatedUserOrganizationId();
+
+        return exerciseRepository.findByOrganizationId(organizationId)
                 .stream()
                 .map(exerciseMapper::toResponse)
                 .toList();
@@ -46,7 +53,9 @@ public class ExerciseService {
 
     @Transactional(readOnly = true)
     public List<ExerciseResponse> findAllByOrganizationId(Long organizationId) {
+        validateSameOrganization(organizationId);
         getOrganizationById(organizationId);
+
 
         return exerciseRepository.findByOrganizationId(organizationId)
                 .stream()
@@ -58,12 +67,16 @@ public class ExerciseService {
     public ExerciseResponse findById(Long id) {
         Exercise exercise = getExerciseById(id);
 
+        validateExerciseBelongsToAuthenticatedOrganization(exercise);
+
         return exerciseMapper.toResponse(exercise);
     }
 
     @Transactional
     public ExerciseResponse update(Long id, UpdateExerciseRequest request) {
         Exercise exercise = getExerciseById(id);
+
+        validateExerciseBelongsToAuthenticatedOrganization(exercise);
 
         exerciseMapper.updateEntity(exercise, request);
 
@@ -75,6 +88,8 @@ public class ExerciseService {
     @Transactional
     public void delete(Long id) {
         Exercise exercise = getExerciseById(id);
+
+        validateExerciseBelongsToAuthenticatedOrganization(exercise);
 
         exercise.setActive(false);
 
@@ -90,5 +105,33 @@ public class ExerciseService {
     private Organization getOrganizationById(Long organizationId) {
         return organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found with id: " + organizationId));
+    }
+
+    private User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+            throw new AccessDeniedException("Access denied");
+        }
+
+        return user;
+    }
+
+    private Long getAuthenticatedUserOrganizationId() {
+        return getAuthenticatedUser().getOrganization().getId();
+    }
+
+    private void validateSameOrganization(Long organizationId) {
+        Long authenticatedUserOrganizationId = getAuthenticatedUserOrganizationId();
+
+        if (!authenticatedUserOrganizationId.equals(organizationId)) {
+            throw new AccessDeniedException("Access denied");
+        }
+    }
+
+    private void validateExerciseBelongsToAuthenticatedOrganization(Exercise exercise) {
+        validateSameOrganization(exercise.getOrganization().getId());
     }
 }
