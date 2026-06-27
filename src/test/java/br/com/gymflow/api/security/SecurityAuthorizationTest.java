@@ -40,8 +40,8 @@ class SecurityAuthorizationTest {
 
     @Test
     void shouldBlockPrivateEndpointWhenTokenIsMissing() throws Exception {
-        mockMvc.perform(get("/api/exercises"))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/workouts"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -72,9 +72,9 @@ class SecurityAuthorizationTest {
 
     @Test
     void shouldBlockPrivateEndpointWhenTokenIsInvalid() throws Exception {
-        mockMvc.perform(get("/api/exercises")
+        mockMvc.perform(get("/api/workouts")
                         .header("Authorization", "Bearer invalid-token"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
