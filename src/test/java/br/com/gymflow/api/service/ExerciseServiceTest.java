@@ -2,7 +2,8 @@ package br.com.gymflow.api.service;
 
 import br.com.gymflow.api.domain.Exercise;
 import br.com.gymflow.api.domain.Organization;
-import br.com.gymflow.api.domain.enums.OrganizationType;
+import br.com.gymflow.api.domain.User;
+import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.dto.exercise.CreateExerciseRequest;
 import br.com.gymflow.api.dto.exercise.ExerciseResponse;
 import br.com.gymflow.api.dto.exercise.UpdateExerciseRequest;
@@ -10,11 +11,16 @@ import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.ExerciseMapper;
 import br.com.gymflow.api.repository.ExerciseRepository;
 import br.com.gymflow.api.repository.OrganizationRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,558 +43,339 @@ class ExerciseServiceTest {
     @InjectMocks
     private ExerciseService exerciseService;
 
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     void shouldCreateExerciseSuccessfully() {
-        // Arrange
-        Long organizationId = 100L;
-        Long exerciseId = 10L;
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
 
-        CreateExerciseRequest request = createExerciseRequest(organizationId);
+        Organization organization = createOrganization(1L);
 
-        Organization organization = createOrganization(organizationId);
-
-        Exercise exerciseToSave = createExercise(
+        CreateExerciseRequest request = new CreateExerciseRequest(
+                1L,
+                "Supino reto",
+                "Peito",
+                "Exercício para peitoral",
+                "Barra",
                 null,
-                organization,
-                "Supino reto"
+                null
         );
 
-        Exercise savedExercise = createExercise(
-                exerciseId,
-                organization,
-                "Supino reto"
-        );
+        Exercise exerciseToSave = createExercise(null, 1L);
+        Exercise savedExercise = createExercise(1L, 1L);
+        ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
 
-        ExerciseResponse expectedResponse = createExerciseResponse(
-                exerciseId,
-                organizationId,
-                "Supino reto"
-        );
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
+        when(exerciseMapper.toEntity(request)).thenReturn(exerciseToSave);
+        when(exerciseRepository.save(exerciseToSave)).thenReturn(savedExercise);
+        when(exerciseMapper.toResponse(savedExercise)).thenReturn(expectedResponse);
 
-        when(organizationRepository.findById(organizationId))
-                .thenReturn(Optional.of(organization));
-
-        when(exerciseMapper.toEntity(request))
-                .thenReturn(exerciseToSave);
-
-        when(exerciseRepository.save(exerciseToSave))
-                .thenReturn(savedExercise);
-
-        when(exerciseMapper.toResponse(savedExercise))
-                .thenReturn(expectedResponse);
-
-        // Act
         ExerciseResponse response = exerciseService.create(request);
 
-        // Assert
         assertNotNull(response);
-        assertEquals(exerciseId, response.id());
-        assertEquals(organizationId, response.organizationId());
-        assertEquals("Supino reto", response.exerciseName());
-        assertEquals("Peito", response.muscleGroup());
-        assertEquals("Barra", response.equipmentName());
+        assertSame(expectedResponse, response);
 
-        assertEquals(organization, exerciseToSave.getOrganization());
-
-        verify(organizationRepository).findById(organizationId);
+        verify(organizationRepository).findById(1L);
         verify(exerciseMapper).toEntity(request);
         verify(exerciseRepository).save(exerciseToSave);
         verify(exerciseMapper).toResponse(savedExercise);
     }
 
     @Test
-    void shouldFindAllExercisesByOrganizationIdSuccessfully() {
-        // Arrange
-        Long organizationId = 100L;
+    void shouldThrowAccessDeniedExceptionWhenCreateExerciseInAnotherOrganization() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
 
-        Organization organization = createOrganization(organizationId);
-
-        Exercise exerciseA = createExercise(
-                10L,
-                organization,
-                "Supino reto"
+        CreateExerciseRequest request = new CreateExerciseRequest(
+                2L,
+                "Exercício Indevido",
+                "Peito",
+                "Não deve permitir",
+                "Barra",
+                null,
+                null
         );
 
-        Exercise exerciseB = createExercise(
-                20L,
-                organization,
-                "Agachamento livre"
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.create(request)
         );
 
-        ExerciseResponse responseA = createExerciseResponse(
-                10L,
-                organizationId,
-                "Supino reto"
-        );
-
-        ExerciseResponse responseB = createExerciseResponse(
-                20L,
-                organizationId,
-                "Agachamento livre"
-        );
-
-        when(organizationRepository.findById(organizationId))
-                .thenReturn(Optional.of(organization));
-
-        when(exerciseRepository.findByOrganizationId(organizationId))
-                .thenReturn(List.of(exerciseA, exerciseB));
-
-        when(exerciseMapper.toResponse(exerciseA))
-                .thenReturn(responseA);
-
-        when(exerciseMapper.toResponse(exerciseB))
-                .thenReturn(responseB);
-
-        // Act
-        List<ExerciseResponse> response = exerciseService.findAllByOrganizationId(organizationId);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(2, response.size());
-
-        assertEquals(10L, response.get(0).id());
-        assertEquals(organizationId, response.get(0).organizationId());
-        assertEquals("Supino reto", response.get(0).exerciseName());
-
-        assertEquals(20L, response.get(1).id());
-        assertEquals(organizationId, response.get(1).organizationId());
-        assertEquals("Agachamento livre", response.get(1).exerciseName());
-
-        verify(organizationRepository).findById(organizationId);
-        verify(exerciseRepository).findByOrganizationId(organizationId);
-        verify(exerciseMapper).toResponse(exerciseA);
-        verify(exerciseMapper).toResponse(exerciseB);
-    }
-
-    @Test
-    void shouldThrowResourceNotFoundExceptionWhenOrganizationDoesNotExistOnFindAllByOrganizationId() {
-        // Arrange
-        Long organizationId = 100L;
-
-        when(organizationRepository.findById(organizationId))
-                .thenReturn(Optional.empty());
-
-        // Act + Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> exerciseService.findAllByOrganizationId(organizationId)
-        );
-
-        assertEquals(
-                "Organization not found with id: " + organizationId,
-                exception.getMessage()
-        );
-
-        verify(organizationRepository).findById(organizationId);
-
-        verify(exerciseRepository, never())
-                .findByOrganizationId(anyLong());
-
+        verifyNoInteractions(organizationRepository);
+        verifyNoInteractions(exerciseRepository);
         verifyNoInteractions(exerciseMapper);
     }
 
     @Test
     void shouldThrowResourceNotFoundExceptionWhenOrganizationDoesNotExistOnCreate() {
-        // Arrange
-        Long organizationId = 100L;
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
 
-        CreateExerciseRequest request = createExerciseRequest(organizationId);
-
-        when(organizationRepository.findById(organizationId))
-                .thenReturn(Optional.empty());
-
-        // Act + Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> exerciseService.create(request)
+        CreateExerciseRequest request = new CreateExerciseRequest(
+                1L,
+                "Supino reto",
+                "Peito",
+                "Exercício para peitoral",
+                "Barra",
+                null,
+                null
         );
 
-        assertEquals(
-                "Organization not found with id: " + organizationId,
-                exception.getMessage()
+        when(organizationRepository.findById(1L)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () ->
+                exerciseService.create(request)
         );
 
-        verify(organizationRepository).findById(organizationId);
+        assertEquals("Organization not found with id: 1", exception.getMessage());
 
-        verifyNoInteractions(
-                exerciseRepository,
-                exerciseMapper
-        );
+        verify(organizationRepository).findById(1L);
+        verifyNoInteractions(exerciseRepository);
+        verifyNoInteractions(exerciseMapper);
     }
 
     @Test
     void shouldFindAllExercisesSuccessfully() {
-        // Arrange
-        Long organizationId = 100L;
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
 
-        Organization organization = createOrganization(organizationId);
+        Exercise exercise = createExercise(1L, 1L);
+        ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
 
-        Exercise exerciseA = createExercise(
-                10L,
-                organization,
-                "Supino reto"
-        );
+        when(exerciseRepository.findByOrganizationId(1L)).thenReturn(List.of(exercise));
+        when(exerciseMapper.toResponse(exercise)).thenReturn(expectedResponse);
 
-        Exercise exerciseB = createExercise(
-                20L,
-                organization,
-                "Agachamento livre"
-        );
-
-        ExerciseResponse responseA = createExerciseResponse(
-                10L,
-                organizationId,
-                "Supino reto"
-        );
-
-        ExerciseResponse responseB = createExerciseResponse(
-                20L,
-                organizationId,
-                "Agachamento livre"
-        );
-
-        when(exerciseRepository.findAll())
-                .thenReturn(List.of(exerciseA, exerciseB));
-
-        when(exerciseMapper.toResponse(exerciseA))
-                .thenReturn(responseA);
-
-        when(exerciseMapper.toResponse(exerciseB))
-                .thenReturn(responseB);
-
-        // Act
         List<ExerciseResponse> response = exerciseService.findAll();
 
-        // Assert
         assertNotNull(response);
-        assertEquals(2, response.size());
+        assertEquals(1, response.size());
+        assertSame(expectedResponse, response.get(0));
 
-        assertEquals(10L, response.get(0).id());
-        assertEquals(organizationId, response.get(0).organizationId());
-        assertEquals("Supino reto", response.get(0).exerciseName());
+        verify(exerciseRepository).findByOrganizationId(1L);
+        verify(exerciseRepository, never()).findAll();
+        verify(exerciseMapper).toResponse(exercise);
+    }
 
-        assertEquals(20L, response.get(1).id());
-        assertEquals(organizationId, response.get(1).organizationId());
-        assertEquals("Agachamento livre", response.get(1).exerciseName());
+    @Test
+    void shouldFindAllExercisesByOrganizationIdSuccessfully() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
 
-        verify(exerciseRepository).findAll();
-        verify(exerciseMapper).toResponse(exerciseA);
-        verify(exerciseMapper).toResponse(exerciseB);
+        Organization organization = createOrganization(1L);
+        Exercise exercise = createExercise(1L, 1L);
+        ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
+
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
+        when(exerciseRepository.findByOrganizationId(1L)).thenReturn(List.of(exercise));
+        when(exerciseMapper.toResponse(exercise)).thenReturn(expectedResponse);
+
+        List<ExerciseResponse> response = exerciseService.findAllByOrganizationId(1L);
+
+        assertNotNull(response);
+        assertEquals(1, response.size());
+        assertSame(expectedResponse, response.get(0));
+
+        verify(organizationRepository).findById(1L);
+        verify(exerciseRepository).findByOrganizationId(1L);
+        verify(exerciseMapper).toResponse(exercise);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenFindAllExercisesByAnotherOrganization() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
+
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.findAllByOrganizationId(2L)
+        );
 
         verifyNoInteractions(organizationRepository);
+        verifyNoInteractions(exerciseRepository);
+        verifyNoInteractions(exerciseMapper);
     }
 
     @Test
     void shouldFindExerciseByIdSuccessfully() {
-        // Arrange
-        Long organizationId = 100L;
-        Long exerciseId = 10L;
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
 
-        Organization organization = createOrganization(organizationId);
+        Exercise exercise = createExercise(1L, 1L);
+        ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
 
-        Exercise exercise = createExercise(
-                exerciseId,
-                organization,
-                "Supino reto"
-        );
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+        when(exerciseMapper.toResponse(exercise)).thenReturn(expectedResponse);
 
-        ExerciseResponse expectedResponse = createExerciseResponse(
-                exerciseId,
-                organizationId,
-                "Supino reto"
-        );
+        ExerciseResponse response = exerciseService.findById(1L);
 
-        when(exerciseRepository.findById(exerciseId))
-                .thenReturn(Optional.of(exercise));
-
-        when(exerciseMapper.toResponse(exercise))
-                .thenReturn(expectedResponse);
-
-        // Act
-        ExerciseResponse response = exerciseService.findById(exerciseId);
-
-        // Assert
         assertNotNull(response);
-        assertEquals(exerciseId, response.id());
-        assertEquals(organizationId, response.organizationId());
-        assertEquals("Supino reto", response.exerciseName());
-        assertEquals("Peito", response.muscleGroup());
-        assertEquals("Barra", response.equipmentName());
+        assertSame(expectedResponse, response);
 
-        verify(exerciseRepository).findById(exerciseId);
+        verify(exerciseRepository).findById(1L);
         verify(exerciseMapper).toResponse(exercise);
-
-        verifyNoInteractions(organizationRepository);
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenExerciseDoesNotExistOnFindById() {
-        // Arrange
-        Long exerciseId = 10L;
+    void shouldThrowAccessDeniedExceptionWhenFindExerciseByIdFromAnotherOrganization() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
 
-        when(exerciseRepository.findById(exerciseId))
-                .thenReturn(Optional.empty());
+        Exercise exercise = createExercise(1L, 2L);
 
-        // Act + Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> exerciseService.findById(exerciseId)
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.findById(1L)
         );
 
-        assertEquals(
-                "Exercise not found with id: " + exerciseId,
-                exception.getMessage()
-        );
-
-        verify(exerciseRepository).findById(exerciseId);
-
-        verifyNoInteractions(
-                organizationRepository,
-                exerciseMapper
-        );
+        verify(exerciseRepository).findById(1L);
+        verifyNoInteractions(exerciseMapper);
     }
 
     @Test
     void shouldUpdateExerciseSuccessfully() {
-        // Arrange
-        Long organizationId = 100L;
-        Long exerciseId = 10L;
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
 
-        UpdateExerciseRequest request = createUpdateExerciseRequest();
+        Exercise exercise = createExercise(1L, 1L);
 
-        Organization organization = createOrganization(organizationId);
-
-        Exercise exercise = createExercise(
-                exerciseId,
-                organization,
-                "Supino reto"
-        );
-
-        Exercise updatedExercise = createExercise(
-                exerciseId,
-                organization,
-                "Supino inclinado"
-        );
-
-        updatedExercise.setMuscleGroup("Peito");
-        updatedExercise.setDescription("Variação inclinada para peitoral superior");
-        updatedExercise.setEquipmentName("Halteres");
-        updatedExercise.setImageUrl("https://example.com/supino-inclinado.png");
-        updatedExercise.setVideoUrl("https://example.com/supino-inclinado.mp4");
-
-        ExerciseResponse expectedResponse = new ExerciseResponse(
-                exerciseId,
-                organizationId,
+        UpdateExerciseRequest request = new UpdateExerciseRequest(
                 "Supino inclinado",
                 "Peito",
-                "Variação inclinada para peitoral superior",
+                "Descrição atualizada",
                 "Halteres",
-                "https://example.com/supino-inclinado.png",
-                "https://example.com/supino-inclinado.mp4",
-                true,
                 null,
                 null
         );
 
-        when(exerciseRepository.findById(exerciseId))
-                .thenReturn(Optional.of(exercise));
+        ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
 
-        when(exerciseRepository.save(exercise))
-                .thenReturn(updatedExercise);
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+        when(exerciseRepository.save(exercise)).thenReturn(exercise);
+        when(exerciseMapper.toResponse(exercise)).thenReturn(expectedResponse);
 
-        when(exerciseMapper.toResponse(updatedExercise))
-                .thenReturn(expectedResponse);
+        ExerciseResponse response = exerciseService.update(1L, request);
 
-        // Act
-        ExerciseResponse response = exerciseService.update(exerciseId, request);
-
-        // Assert
         assertNotNull(response);
-        assertEquals(exerciseId, response.id());
-        assertEquals(organizationId, response.organizationId());
-        assertEquals("Supino inclinado", response.exerciseName());
-        assertEquals("Peito", response.muscleGroup());
-        assertEquals("Variação inclinada para peitoral superior", response.description());
-        assertEquals("Halteres", response.equipmentName());
-        assertEquals("https://example.com/supino-inclinado.png", response.imageUrl());
-        assertEquals("https://example.com/supino-inclinado.mp4", response.videoUrl());
+        assertSame(expectedResponse, response);
 
-        verify(exerciseRepository).findById(exerciseId);
+        verify(exerciseRepository).findById(1L);
         verify(exerciseMapper).updateEntity(exercise, request);
         verify(exerciseRepository).save(exercise);
-        verify(exerciseMapper).toResponse(updatedExercise);
-
-        verifyNoInteractions(organizationRepository);
+        verify(exerciseMapper).toResponse(exercise);
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenExerciseDoesNotExistOnUpdate() {
-        // Arrange
-        Long exerciseId = 10L;
+    void shouldThrowAccessDeniedExceptionWhenUpdateExerciseFromAnotherOrganization() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
 
-        UpdateExerciseRequest request = createUpdateExerciseRequest();
+        Exercise exercise = createExercise(1L, 2L);
 
-        when(exerciseRepository.findById(exerciseId))
-                .thenReturn(Optional.empty());
-
-        // Act + Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> exerciseService.update(exerciseId, request)
+        UpdateExerciseRequest request = new UpdateExerciseRequest(
+                "Supino inclinado",
+                null,
+                null,
+                null,
+                null,
+                null
         );
 
-        assertEquals(
-                "Exercise not found with id: " + exerciseId,
-                exception.getMessage()
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.update(1L, request)
         );
 
-        verify(exerciseRepository).findById(exerciseId);
-
-        verifyNoInteractions(
-                organizationRepository,
-                exerciseMapper
-        );
-
-        verify(exerciseRepository, never())
-                .save(any(Exercise.class));
+        verify(exerciseRepository).findById(1L);
+        verify(exerciseMapper, never()).updateEntity(any(), any());
+        verify(exerciseRepository, never()).save(any());
     }
 
     @Test
     void shouldDeleteExerciseSuccessfully() {
-        // Arrange
-        Long organizationId = 100L;
-        Long exerciseId = 10L;
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
 
-        Organization organization = createOrganization(organizationId);
+        Exercise exercise = createExercise(1L, 1L);
 
-        Exercise exercise = createExercise(
-                exerciseId,
-                organization,
-                "Supino reto"
-        );
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+        when(exerciseRepository.save(exercise)).thenReturn(exercise);
 
-        when(exerciseRepository.findById(exerciseId))
-                .thenReturn(Optional.of(exercise));
+        exerciseService.delete(1L);
 
-        when(exerciseRepository.save(exercise))
-                .thenReturn(exercise);
-
-        // Act
-        exerciseService.delete(exerciseId);
-
-        // Assert
         assertFalse(exercise.getActive());
 
-        verify(exerciseRepository).findById(exerciseId);
+        verify(exerciseRepository).findById(1L);
         verify(exerciseRepository).save(exercise);
-
-        verify(exerciseRepository, never())
-                .delete(any(Exercise.class));
-
-        verifyNoInteractions(
-                organizationRepository,
-                exerciseMapper
-        );
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenExerciseDoesNotExistOnDelete() {
-        // Arrange
-        Long exerciseId = 10L;
+    void shouldThrowAccessDeniedExceptionWhenDeleteExerciseFromAnotherOrganization() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
 
-        when(exerciseRepository.findById(exerciseId))
-                .thenReturn(Optional.empty());
+        Exercise exercise = createExercise(1L, 2L);
 
-        // Act + Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> exerciseService.delete(exerciseId)
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.delete(1L)
         );
 
-        assertEquals(
-                "Exercise not found with id: " + exerciseId,
-                exception.getMessage()
-        );
-
-        verify(exerciseRepository).findById(exerciseId);
-
-        verifyNoInteractions(
-                organizationRepository,
-                exerciseMapper
-        );
-
-        verify(exerciseRepository, never())
-                .save(any(Exercise.class));
-
-        verify(exerciseRepository, never())
-                .delete(any(Exercise.class));
+        verify(exerciseRepository).findById(1L);
+        verify(exerciseRepository, never()).save(any());
     }
 
-    private CreateExerciseRequest createExerciseRequest(Long organizationId) {
-        return new CreateExerciseRequest(
-                organizationId,
-                "Supino reto",
-                "Peito",
-                "Exercício para fortalecimento do peitoral",
-                "Barra",
-                "https://example.com/supino.png",
-                "https://example.com/supino.mp4"
-        );
+    private void authenticate(User user) {
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        user,
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    private UpdateExerciseRequest createUpdateExerciseRequest() {
-        return new UpdateExerciseRequest(
-                "Supino inclinado",
-                "Peito",
-                "Variação inclinada para peitoral superior",
-                "Halteres",
-                "https://example.com/supino-inclinado.png",
-                "https://example.com/supino-inclinado.mp4"
-        );
-    }
+    private User createUser(Long id, UserRole role, Long organizationId) {
+        Organization organization = createOrganization(organizationId);
 
-    private ExerciseResponse createExerciseResponse(
-            Long exerciseId,
-            Long organizationId,
-            String exerciseName
+        User user = new User();
+        user.setId(id);
+        user.setName("Test User");
+        user.setEmail("user" + id + "@gymflow.com");
+        user.setPasswordHash("$2a$10$hash");
+        user.setRole(role);
+        user.setActive(true);
+        user.setOrganization(organization);
 
-    ) {
-        return new ExerciseResponse(
-                exerciseId,
-                organizationId,
-                exerciseName,
-                "Peito",
-                "Exercício para fortalecimento do peitoral",
-                "Barra",
-                "https://example.com/supino.png",
-                "https://example.com/supino.mp4",
-                true,
-                null,
-                null
-        );
-    }
-
-    private Exercise createExercise(Long id, Organization organization, String exerciseName) {
-        Exercise exercise = new Exercise();
-        exercise.setId(id);
-        exercise.setOrganization(organization);
-        exercise.setExerciseName(exerciseName);
-        exercise.setMuscleGroup("Peito");
-        exercise.setDescription("Exercício para fortalecimento do peitoral");
-        exercise.setEquipmentName("Barra");
-        exercise.setActive(true);
-        exercise.setImageUrl("https://example.com/supino.png");
-        exercise.setVideoUrl("https://example.com/supino.mp4");
-        return exercise;
+        return user;
     }
 
     private Organization createOrganization(Long id) {
         Organization organization = new Organization();
         organization.setId(id);
-        organization.setOrganizationName("GymFlow Academy");
-        organization.setOrganizationType(OrganizationType.ACADEMY);
-        organization.setActive(true);
+        organization.setOrganizationName("GymFlow Academy Dev");
         return organization;
+    }
+
+    private Exercise createExercise(Long id, Long organizationId) {
+        Organization organization = createOrganization(organizationId);
+
+        Exercise exercise = new Exercise();
+        exercise.setId(id);
+        exercise.setExerciseName("Supino reto");
+        exercise.setMuscleGroup("Peito");
+        exercise.setDescription("Exercício para peitoral");
+        exercise.setEquipmentName("Barra");
+        exercise.setImageUrl(null);
+        exercise.setVideoUrl(null);
+        exercise.setActive(true);
+        exercise.setOrganization(organization);
+
+        return exercise;
     }
 }
