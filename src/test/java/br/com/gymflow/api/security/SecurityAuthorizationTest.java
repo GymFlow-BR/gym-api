@@ -15,7 +15,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -87,12 +86,7 @@ class SecurityAuthorizationTest {
 
         mockMvc.perform(get("/api/students/{studentId}/workouts/current", student.getId())
                         .header("Authorization", "Bearer " + token))
-                .andExpect(result -> {
-                    int status = result.getResponse().getStatus();
-
-                    assertNotEquals(401, status);
-                    assertNotEquals(403, status);
-                });
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -152,12 +146,7 @@ class SecurityAuthorizationTest {
 
         mockMvc.perform(get("/api/users")
                         .header("Authorization", "Bearer " + token))
-                .andExpect(result -> {
-                    int status = result.getResponse().getStatus();
-
-                    assertNotEquals(401, status);
-                    assertNotEquals(403, status);
-                });
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -240,15 +229,10 @@ class SecurityAuthorizationTest {
                         .contentType("application/json")
                         .content("""
                             {
-                              "name": "Aluno Atualizado"
+                              "email": "invalid-email"
                             }
                             """))
-                .andExpect(result -> {
-                    int status = result.getResponse().getStatus();
-
-                    assertNotEquals(401, status);
-                    assertNotEquals(403, status);
-                });
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -294,14 +278,9 @@ class SecurityAuthorizationTest {
 
         when(userRepository.findByEmail(admin.getEmail())).thenReturn(Optional.of(admin));
 
-        mockMvc.perform(delete("/api/users/{id}", 2L)
+        mockMvc.perform(delete("/api/users/{id}", 999L)
                         .header("Authorization", "Bearer " + token))
-                .andExpect(result -> {
-                    int status = result.getResponse().getStatus();
-
-                    assertNotEquals(401, status);
-                    assertNotEquals(403, status);
-                });
+                .andExpect(status().isNotFound());
     }
 
     @Test
