@@ -202,6 +202,10 @@ class WorkoutServiceTest {
         );
 
         Organization organization = createOrganization(100L);
+
+        User authenticatedTeacher = createTeacher(99L, organization);
+        authenticate(authenticatedTeacher);
+
         User student = createTeacher(studentId, organization);
         student.setRole(UserRole.STUDENT);
 
@@ -931,6 +935,35 @@ class WorkoutServiceTest {
         verifyNoInteractions(organizationRepository);
         verifyNoInteractions(workoutRepository);
         verifyNoInteractions(workoutMapper);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenCreateWorkoutWithStudentFromAnotherOrganization() {
+        Long studentId = 1L;
+
+        Organization authenticatedOrganization = createOrganization(100L);
+        User authenticatedTeacher = createTeacher(99L, authenticatedOrganization);
+        authenticate(authenticatedTeacher);
+
+        Organization anotherOrganization = createOrganization(200L);
+        User studentFromAnotherOrganization = createTeacher(studentId, anotherOrganization);
+        studentFromAnotherOrganization.setRole(UserRole.STUDENT);
+
+        CreateWorkoutRequest request = createWorkoutRequest(
+                studentId,
+                "Treino Indevido"
+        );
+
+        when(userRepository.findById(studentId))
+                .thenReturn(Optional.of(studentFromAnotherOrganization));
+
+        assertThrows(AccessDeniedException.class, () ->
+                workoutService.create(request)
+        );
+
+        verify(userRepository).findById(studentId);
+        verifyNoInteractions(workoutMapper);
+        verify(workoutRepository, never()).save(any());
     }
 
 
