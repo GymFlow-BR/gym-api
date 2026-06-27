@@ -54,7 +54,7 @@ public class WorkoutService {
     public List<WorkoutResponse> findAll() {
         Long organizationId = getAuthenticatedUserOrganizationId();
 
-        return workoutRepository.findByTeacherOrganizationId(organizationId)
+        return workoutRepository.findByTeacherOrganizationIdAndStatus(organizationId, WorkoutStatus.ACTIVE)
                 .stream()
                 .map(workoutMapper::toResponse)
                 .toList();
@@ -65,7 +65,7 @@ public class WorkoutService {
         validateSameOrganization(organizationId);
         getOrganizationById(organizationId);
 
-        return workoutRepository.findByTeacherOrganizationId(organizationId)
+        return workoutRepository.findByTeacherOrganizationIdAndStatus(organizationId, WorkoutStatus.ACTIVE)
                 .stream()
                 .map(workoutMapper::toResponse)
                 .toList();
