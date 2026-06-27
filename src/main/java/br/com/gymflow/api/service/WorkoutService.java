@@ -36,9 +36,10 @@ public class WorkoutService {
 
     @Transactional
     public WorkoutResponse create(CreateWorkoutRequest request) {
-        User teacher = getTeacherById(request.teacherId());
+        User teacher = getUserById(request.teacherId());
 
         validateSameOrganization(teacher.getOrganization().getId());
+        validateUserCanCreateWorkout(teacher);
 
         Workout workout = workoutMapper.toEntity(request);
         workout.setTeacher(teacher);
@@ -117,16 +118,15 @@ public class WorkoutService {
                 .orElseThrow(() -> new ResourceNotFoundException("Workout not found with id: " + id));
     }
 
-    private User getTeacherById(Long teacherId) {
+    private User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + userId));
+    }
 
-        User user =  userRepository.findById(teacherId)
-                .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + teacherId));
-
+    private void validateUserCanCreateWorkout(User user) {
         if (user.getRole() != UserRole.TEACHER && user.getRole() != UserRole.ADMIN) {
-            throw new BusinessRuleException("User is not allowed to create workouts with id: " + teacherId);
+            throw new BusinessRuleException("User is not allowed to create workouts with id: " + user.getId());
         }
-
-        return user;
     }
 
     private void getOrganizationById(Long organizationId) {
