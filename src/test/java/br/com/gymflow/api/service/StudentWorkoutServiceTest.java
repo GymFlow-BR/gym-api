@@ -1087,6 +1087,7 @@ class StudentWorkoutServiceTest {
         workout.setId(workoutId);
         workout.setTeacher(teacher);
         workout.setWorkoutName("Treino A");
+        workout.setStatus(WorkoutStatus.ACTIVE);
 
         LocalDateTime assignedAt = LocalDateTime.now();
 
@@ -1264,6 +1265,7 @@ class StudentWorkoutServiceTest {
         workout.setId(workoutId);
         workout.setTeacher(teacher);
         workout.setWorkoutName("Treino A");
+        workout.setStatus(WorkoutStatus.ACTIVE);
 
         LocalDateTime assignedAt = LocalDateTime.now();
 
@@ -1328,5 +1330,73 @@ class StudentWorkoutServiceTest {
                 .toCurrentWorkoutResponse(studentWorkout, workoutExercises);
 
         verifyNoInteractions(workoutRepository);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenCurrentWorkoutIsInactive() {
+        // Arrange
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutId = 10L;
+        Long organizationId = 100L;
+
+        Organization organization = new Organization();
+        organization.setId(organizationId);
+
+        User student = new User();
+        student.setId(studentId);
+        student.setRole(UserRole.STUDENT);
+        student.setOrganization(organization);
+
+        User teacher = new User();
+        teacher.setId(2L);
+        teacher.setRole(UserRole.TEACHER);
+        teacher.setOrganization(organization);
+
+        Workout workout = new Workout();
+        workout.setId(workoutId);
+        workout.setTeacher(teacher);
+        workout.setWorkoutName("Treino A");
+        workout.setStatus(WorkoutStatus.INACTIVE);
+
+        StudentWorkout studentWorkout = new StudentWorkout();
+        studentWorkout.setId(studentWorkoutId);
+        studentWorkout.setStudent(student);
+        studentWorkout.setWorkout(workout);
+        studentWorkout.setAssignedAt(LocalDateTime.now());
+        studentWorkout.setStatus(WorkoutStatus.ACTIVE);
+
+        when(userRepository.findById(studentId))
+                .thenReturn(Optional.of(student));
+
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(
+                studentId,
+                WorkoutStatus.ACTIVE
+        )).thenReturn(Optional.of(studentWorkout));
+
+        // Act + Assert
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> studentWorkoutService.findCurrentWorkout(studentId)
+        );
+
+        assertEquals(
+                "Active workout not found student id: " + studentId,
+                exception.getMessage()
+        );
+
+        verify(userRepository).findById(studentId);
+
+        verify(studentWorkoutRepository)
+                .findFirstByStudentIdAndStatusOrderByAssignedAtDesc(
+                        studentId,
+                        WorkoutStatus.ACTIVE
+                );
+
+        verifyNoInteractions(
+                workoutRepository,
+                workoutExerciseRepository,
+                studentWorkoutMapper
+        );
     }
 }
