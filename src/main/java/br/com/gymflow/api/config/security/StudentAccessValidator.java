@@ -18,7 +18,8 @@ public class StudentAccessValidator {
     public void validateStudentAccess(Long studentId) {
         User authenticatedUser = getAuthenticatedUser();
 
-        if (authenticatedUser.getRole() == UserRole.ADMIN ) {
+        if (authenticatedUser.getRole() == UserRole.ADMIN) {
+            validateAdminAccess(authenticatedUser, studentId);
             return;
         }
 
@@ -61,5 +62,21 @@ public class StudentAccessValidator {
         }
 
         return user;
+    }
+
+    private void validateAdminAccess(User admin, Long studentId) {
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new AccessDeniedException("Access denied"));
+
+        if (student.getRole() != UserRole.STUDENT) {
+            throw new AccessDeniedException("Access denied");
+        }
+
+        Long adminOrganizationId = admin.getOrganization().getId();
+        Long studentOrganizationId = student.getOrganization().getId();
+
+        if (!adminOrganizationId.equals(studentOrganizationId)) {
+            throw new AccessDeniedException("Access denied");
+        }
     }
 }

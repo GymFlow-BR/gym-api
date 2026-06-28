@@ -19,8 +19,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,13 +38,44 @@ class StudentAccessValidatorTest {
     }
 
     @Test
-    void shouldAllowAdminToAccessAnyStudentData() {
+    void shouldBlockAdminFromAccessingStudentFromAnotherOrganization() {
+        // Arrange
         User admin = createUser(1L, UserRole.ADMIN, 1L);
+        User student = createUser(2L, UserRole.STUDENT, 2L);
+
         authenticate(admin);
 
-        assertDoesNotThrow(() ->
-                studentAccessValidator.validateStudentAccess(99L)
+        when(userRepository.findById(student.getId()))
+                .thenReturn(Optional.of(student));
+
+        // Act + Assert
+        AccessDeniedException exception = assertThrows(
+                AccessDeniedException.class,
+                () -> studentAccessValidator.validateStudentAccess(student.getId())
         );
+
+        assertEquals("Access denied", exception.getMessage());
+
+        verify(userRepository).findById(student.getId());
+    }
+
+    @Test
+    void shouldAllowAdminToAccessStudentFromSameOrganization() {
+        // Arrange
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        User student = createUser(2L, UserRole.STUDENT, 1L);
+
+        authenticate(admin);
+
+        when(userRepository.findById(student.getId()))
+                .thenReturn(Optional.of(student));
+
+        // Act + Assert
+        assertDoesNotThrow(() ->
+                studentAccessValidator.validateStudentAccess(student.getId())
+        );
+
+        verify(userRepository).findById(student.getId());
     }
 
     @Test
