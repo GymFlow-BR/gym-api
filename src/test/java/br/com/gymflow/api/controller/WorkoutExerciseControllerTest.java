@@ -4,6 +4,7 @@ import br.com.gymflow.api.config.security.JwtAuthenticationFilter;
 import br.com.gymflow.api.dto.workoutExercise.CreateWorkoutExerciseRequest;
 import br.com.gymflow.api.dto.workoutExercise.PatchWorkoutExerciseRequest;
 import br.com.gymflow.api.dto.workoutExercise.WorkoutExerciseResponse;
+import br.com.gymflow.api.exception.DuplicateResourceException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.service.WorkoutExerciseService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -280,6 +281,39 @@ class WorkoutExerciseControllerTest {
 
         verify(workoutExerciseService, never())
                 .create(eq(workoutId), any(CreateWorkoutExerciseRequest.class));
+    }
+
+    @Test
+    void shouldReturnConflictWhenWorkoutAlreadyHasExerciseWithSameOrder() throws Exception {
+        // Arrange
+        Long workoutId = 10L;
+
+        CreateWorkoutExerciseRequest request = new CreateWorkoutExerciseRequest(
+                20L,
+                1,
+                4,
+                "8-12",
+                BigDecimal.valueOf(40.00),
+                60,
+                "Manter controle do movimento"
+        );
+
+        when(workoutExerciseService.create(eq(workoutId), any(CreateWorkoutExerciseRequest.class)))
+                .thenThrow(new DuplicateResourceException(
+                        "Workout already has an exercise with this order"
+                ));
+
+        // Act + Assert
+        mockMvc.perform(post("/api/workouts/{workoutId}/exercises", workoutId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.message").value("Workout already has an exercise with this order"))
+                .andExpect(jsonPath("$.path").value("/api/workouts/" + workoutId + "/exercises"));
+
+        verify(workoutExerciseService).create(eq(workoutId), any(CreateWorkoutExerciseRequest.class));
     }
 
 

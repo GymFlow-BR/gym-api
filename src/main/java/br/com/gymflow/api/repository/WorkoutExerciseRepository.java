@@ -9,4 +9,6 @@ public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise
     List<WorkoutExercise> findAllByWorkoutId(Long workoutId);
 
     List<WorkoutExercise> findAllByWorkoutIdOrderByExerciseOrderAsc(Long workoutId);
+
+    boolean existsByWorkoutIdAndExerciseOrder(Long workoutId, Integer exerciseOrder);
 }

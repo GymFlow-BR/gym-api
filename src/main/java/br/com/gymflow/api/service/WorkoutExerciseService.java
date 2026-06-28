@@ -15,6 +15,7 @@ import br.com.gymflow.api.repository.WorkoutRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import br.com.gymflow.api.exception.DuplicateResourceException;
 
 import java.util.List;
 
@@ -34,6 +35,7 @@ public class WorkoutExerciseService {
         Exercise exercise = getExerciseById(request.exerciseId());
 
         validateExerciseBelongsToWorkoutOrganization(workout, exercise);
+        validateExerciseOrderIsAvailable(workoutId, request.exerciseOrder());
 
         WorkoutExercise workoutExercise = workoutExerciseMapper.toEntity(request);
         workoutExercise.setWorkout(workout);
@@ -143,5 +145,18 @@ public class WorkoutExerciseService {
     private Exercise getExerciseById(Long exerciseId) {
         return exerciseRepository.findById(exerciseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exercise not found with id: " + exerciseId));
+    }
+
+    private void validateExerciseOrderIsAvailable(Long workoutId, Integer exerciseOrder) {
+        boolean alreadyExists = workoutExerciseRepository.existsByWorkoutIdAndExerciseOrder(
+                workoutId,
+                exerciseOrder
+        );
+
+        if (alreadyExists) {
+            throw new DuplicateResourceException(
+                    "Workout already has an exercise with this order"
+            );
+        }
     }
 }
