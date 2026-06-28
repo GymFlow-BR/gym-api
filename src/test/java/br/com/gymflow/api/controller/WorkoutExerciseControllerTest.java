@@ -68,7 +68,7 @@ class WorkoutExerciseControllerTest {
                 .andExpect(jsonPath("$.exerciseId").value(20L))
                 .andExpect(jsonPath("$.exerciseOrder").value(1))
                 .andExpect(jsonPath("$.sets").value(4))
-                .andExpect(jsonPath("$.reps").value(10))
+                .andExpect(jsonPath("$.reps").value("8-12"))
                 .andExpect(jsonPath("$.recommendedLoad").value(40.00))
                 .andExpect(jsonPath("$.restTimeSeconds").value(60))
                 .andExpect(jsonPath("$.notes").value("Manter controle do movimento."));
@@ -93,7 +93,7 @@ class WorkoutExerciseControllerTest {
                 30L,
                 2,
                 4,
-                12,
+                "8-12",
                 new BigDecimal("60.00"),
                 90,
                 "Atenção à postura durante a execução.",
@@ -112,7 +112,7 @@ class WorkoutExerciseControllerTest {
                 .andExpect(jsonPath("$[0].exerciseId").value(20L))
                 .andExpect(jsonPath("$[0].exerciseOrder").value(1))
                 .andExpect(jsonPath("$[0].sets").value(4))
-                .andExpect(jsonPath("$[0].reps").value(10))
+                .andExpect(jsonPath("$[0].reps").value("8-12"))
                 .andExpect(jsonPath("$[0].recommendedLoad").value(40.00))
                 .andExpect(jsonPath("$[0].restTimeSeconds").value(60))
                 .andExpect(jsonPath("$[0].notes").value("Manter controle do movimento."))
@@ -121,7 +121,7 @@ class WorkoutExerciseControllerTest {
                 .andExpect(jsonPath("$[1].exerciseId").value(30L))
                 .andExpect(jsonPath("$[1].exerciseOrder").value(2))
                 .andExpect(jsonPath("$[1].sets").value(4))
-                .andExpect(jsonPath("$[1].reps").value(12))
+                .andExpect(jsonPath("$[1].reps").value("8-12"))
                 .andExpect(jsonPath("$[1].recommendedLoad").value(60.00))
                 .andExpect(jsonPath("$[1].restTimeSeconds").value(90))
                 .andExpect(jsonPath("$[1].notes").value("Atenção à postura durante a execução."));
@@ -156,7 +156,7 @@ class WorkoutExerciseControllerTest {
                 .andExpect(jsonPath("$.exerciseId").value(20L))
                 .andExpect(jsonPath("$.exerciseOrder").value(1))
                 .andExpect(jsonPath("$.sets").value(4))
-                .andExpect(jsonPath("$.reps").value(10))
+                .andExpect(jsonPath("$.reps").value("8-12"))
                 .andExpect(jsonPath("$.recommendedLoad").value(40.00))
                 .andExpect(jsonPath("$.restTimeSeconds").value(60))
                 .andExpect(jsonPath("$.notes").value("Manter controle do movimento."));
@@ -178,7 +178,7 @@ class WorkoutExerciseControllerTest {
                 20L,
                 2,
                 3,
-                12,
+                "8-12",
                 new BigDecimal("35.00"),
                 90,
                 "Atualizar execução do exercício.",
@@ -206,7 +206,7 @@ class WorkoutExerciseControllerTest {
                 .andExpect(jsonPath("$.exerciseId").value(20L))
                 .andExpect(jsonPath("$.exerciseOrder").value(2))
                 .andExpect(jsonPath("$.sets").value(3))
-                .andExpect(jsonPath("$.reps").value(12))
+                .andExpect(jsonPath("$.reps").value("8-12"))
                 .andExpect(jsonPath("$.recommendedLoad").value(35.00))
                 .andExpect(jsonPath("$.restTimeSeconds").value(90))
                 .andExpect(jsonPath("$.notes").value("Atualizar execução do exercício."));
@@ -266,7 +266,7 @@ class WorkoutExerciseControllerTest {
                 null,
                 0,
                 0,
-                0,
+                "0",
                 new BigDecimal("-1.00"),
                 -10,
                 "Request inválida para teste"
@@ -288,7 +288,7 @@ class WorkoutExerciseControllerTest {
                 20L,
                 1,
                 4,
-                10,
+                "8-12",
                 new BigDecimal("40.00"),
                 60,
                 "Manter controle do movimento."
@@ -299,7 +299,7 @@ class WorkoutExerciseControllerTest {
         return new PatchWorkoutExerciseRequest(
                 2,
                 3,
-                12,
+                "8-12",
                 new BigDecimal("35.00"),
                 90,
                 "Atualizar execução do exercício."
@@ -317,7 +317,7 @@ class WorkoutExerciseControllerTest {
                 exerciseId,
                 1,
                 4,
-                10,
+                "8-12",
                 new BigDecimal("40.00"),
                 60,
                 "Manter controle do movimento.",

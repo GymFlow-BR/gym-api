@@ -12,7 +12,7 @@ public record StudentCurrentWorkoutExerciseResponse(
         String description,
         Integer exerciseOrder,
         Integer sets,
-        Integer reps,
+        String reps,
         BigDecimal recommendedLoad,
         Integer restTimeSeconds,
         String notes,
