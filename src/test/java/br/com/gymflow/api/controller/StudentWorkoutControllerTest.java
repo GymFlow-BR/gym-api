@@ -243,7 +243,7 @@ class StudentWorkoutControllerTest {
                 .andExpect(jsonPath("$.exercises[0].description").value("Exercício para peitoral"))
                 .andExpect(jsonPath("$.exercises[0].exerciseOrder").value(1))
                 .andExpect(jsonPath("$.exercises[0].sets").value(4))
-                .andExpect(jsonPath("$.exercises[0].reps").value(10))
+                .andExpect(jsonPath("$.exercises[0].reps").value("8-12"))
                 .andExpect(jsonPath("$.exercises[0].recommendedLoad").value(40.00))
                 .andExpect(jsonPath("$.exercises[0].restTimeSeconds").value(60))
                 .andExpect(jsonPath("$.exercises[0].notes").value("Manter controle do movimento."))
@@ -445,7 +445,7 @@ class StudentWorkoutControllerTest {
                 "Exercício para peitoral",
                 1,
                 4,
-                10,
+                "8-12",
                 new BigDecimal("40.00"),
                 60,
                 "Manter controle do movimento.",

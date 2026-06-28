@@ -9,7 +9,7 @@ public record WorkoutExerciseResponse(
         Long exerciseId,
         Integer exerciseOrder,
         Integer sets,
-        Integer reps,
+        String reps,
         BigDecimal recommendedLoad,
         Integer restTimeSeconds,
         String notes,

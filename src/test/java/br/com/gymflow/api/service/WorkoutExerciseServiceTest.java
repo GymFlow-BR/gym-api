@@ -96,7 +96,7 @@ class WorkoutExerciseServiceTest {
         assertEquals(exerciseId, response.exerciseId());
         assertEquals(1, response.exerciseOrder());
         assertEquals(3, response.sets());
-        assertEquals(10, response.reps());
+        assertEquals("8-12", response.reps());
 
         assertEquals(workout, workoutExerciseToSave.getWorkout());
         assertEquals(exercise, workoutExerciseToSave.getExercise());
@@ -365,7 +365,7 @@ class WorkoutExerciseServiceTest {
         assertEquals(exerciseId, response.exerciseId());
         assertEquals(1, response.exerciseOrder());
         assertEquals(3, response.sets());
-        assertEquals(10, response.reps());
+        assertEquals("8-12", response.reps());
 
         verify(workoutExerciseRepository).findById(workoutExerciseId);
         verify(workoutExerciseMapper).toResponse(workoutExercise);
@@ -479,7 +479,7 @@ class WorkoutExerciseServiceTest {
 
         updatedWorkoutExercise.setExerciseOrder(2);
         updatedWorkoutExercise.setSets(4);
-        updatedWorkoutExercise.setReps(12);
+        updatedWorkoutExercise.setReps("8-12");
         updatedWorkoutExercise.setRecommendedLoad(BigDecimal.valueOf(45.00));
         updatedWorkoutExercise.setRestTimeSeconds(90);
         updatedWorkoutExercise.setNotes("Aumentar carga progressivamente");
@@ -490,7 +490,7 @@ class WorkoutExerciseServiceTest {
                 exerciseId,
                 2,
                 4,
-                12,
+                "8-12",
                 BigDecimal.valueOf(45.00),
                 90,
                 "Aumentar carga progressivamente",
@@ -521,14 +521,14 @@ class WorkoutExerciseServiceTest {
         assertEquals(exerciseId, response.exerciseId());
         assertEquals(2, response.exerciseOrder());
         assertEquals(4, response.sets());
-        assertEquals(12, response.reps());
+        assertEquals("8-12", response.reps());
         assertEquals(BigDecimal.valueOf(45.00), response.recommendedLoad());
         assertEquals(90, response.restTimeSeconds());
         assertEquals("Aumentar carga progressivamente", response.notes());
 
         assertEquals(2, workoutExercise.getExerciseOrder());
         assertEquals(4, workoutExercise.getSets());
-        assertEquals(12, workoutExercise.getReps());
+        assertEquals("8-12", workoutExercise.getReps());
         assertEquals(BigDecimal.valueOf(45.00), workoutExercise.getRecommendedLoad());
         assertEquals(90, workoutExercise.getRestTimeSeconds());
         assertEquals("Aumentar carga progressivamente", workoutExercise.getNotes());
@@ -792,7 +792,7 @@ class WorkoutExerciseServiceTest {
         workoutExercise.setExercise(exercise);
         workoutExercise.setExerciseOrder(1);
         workoutExercise.setSets(3);
-        workoutExercise.setReps(10);
+        workoutExercise.setReps("8-12");
         workoutExercise.setRecommendedLoad(BigDecimal.valueOf(40.00));
         workoutExercise.setRestTimeSeconds(60);
         workoutExercise.setNotes("Manter controle do movimento");
@@ -804,7 +804,7 @@ class WorkoutExerciseServiceTest {
                 exerciseId,
                 1,
                 3,
-                10,
+                "8-12",
                 BigDecimal.valueOf(40.00),
                 60,
                 "Manter controle do movimento"
@@ -815,7 +815,7 @@ class WorkoutExerciseServiceTest {
         return new PatchWorkoutExerciseRequest(
                 2,
                 4,
-                12,
+                "8-12",
                 BigDecimal.valueOf(45.00),
                 90,
                 "Aumentar carga progressivamente"
@@ -833,7 +833,7 @@ class WorkoutExerciseServiceTest {
                 exerciseId,
                 1,
                 3,
-                10,
+                "8-12",
                 BigDecimal.valueOf(40.00),
                 60,
                 "Manter controle do movimento",

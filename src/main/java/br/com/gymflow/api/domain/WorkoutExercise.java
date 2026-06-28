@@ -37,8 +37,8 @@ public class WorkoutExercise {
     @Column(name = "sets", nullable = false)
     private Integer sets;
 
-    @Column(name = "reps", nullable = false)
-    private Integer reps;
+    @Column(name = "reps", nullable = false, length = 50)
+    private String reps;
 
     @Column(name = "recommended_load", precision = 6, scale = 2)
     private BigDecimal recommendedLoad;
