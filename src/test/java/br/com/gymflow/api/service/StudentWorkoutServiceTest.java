@@ -1087,6 +1087,7 @@ class StudentWorkoutServiceTest {
         workout.setId(workoutId);
         workout.setTeacher(teacher);
         workout.setWorkoutName("Treino A");
+        workout.setStatus(WorkoutStatus.ACTIVE);
 
         LocalDateTime assignedAt = LocalDateTime.now();
 
@@ -1264,6 +1265,7 @@ class StudentWorkoutServiceTest {
         workout.setId(workoutId);
         workout.setTeacher(teacher);
         workout.setWorkoutName("Treino A");
+        workout.setStatus(WorkoutStatus.ACTIVE);
 
         LocalDateTime assignedAt = LocalDateTime.now();
 
