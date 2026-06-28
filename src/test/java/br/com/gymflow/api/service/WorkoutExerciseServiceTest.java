@@ -11,6 +11,7 @@ import br.com.gymflow.api.dto.workoutExercise.CreateWorkoutExerciseRequest;
 import br.com.gymflow.api.dto.workoutExercise.PatchWorkoutExerciseRequest;
 import br.com.gymflow.api.dto.workoutExercise.WorkoutExerciseResponse;
 import br.com.gymflow.api.exception.BusinessRuleException;
+import br.com.gymflow.api.exception.DuplicateResourceException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.WorkoutExerciseMapper;
 import br.com.gymflow.api.repository.ExerciseRepository;
@@ -77,6 +78,11 @@ class WorkoutExerciseServiceTest {
         when(exerciseRepository.findById(exerciseId))
                 .thenReturn(Optional.of(exercise));
 
+        when(workoutExerciseRepository.existsByWorkoutIdAndExerciseOrder(
+                workoutId,
+                request.exerciseOrder()
+        )).thenReturn(false);
+
         when(workoutExerciseMapper.toEntity(request))
                 .thenReturn(workoutExerciseToSave);
 
@@ -106,6 +112,10 @@ class WorkoutExerciseServiceTest {
         verify(workoutExerciseMapper).toEntity(request);
         verify(workoutExerciseRepository).save(workoutExerciseToSave);
         verify(workoutExerciseMapper).toResponse(savedWorkoutExercise);
+        verify(workoutExerciseRepository).existsByWorkoutIdAndExerciseOrder(
+                workoutId,
+                request.exerciseOrder()
+        );
     }
 
     @Test
@@ -749,6 +759,117 @@ class WorkoutExerciseServiceTest {
 
         verify(workoutExerciseRepository, never())
                 .delete(any(WorkoutExercise.class));
+    }
+
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenWorkoutAlreadyHasExerciseWithSameOrder() {
+        // Arrange
+        Long workoutId = 10L;
+        Long exerciseId = 20L;
+
+        CreateWorkoutExerciseRequest request = createWorkoutExerciseRequest(exerciseId);
+
+        Organization organization = createOrganization(100L);
+        User teacher = createTeacher(1L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+        Exercise exercise = createExercise(exerciseId, organization, "Supino reto");
+
+        when(workoutRepository.findById(workoutId))
+                .thenReturn(Optional.of(workout));
+
+        when(exerciseRepository.findById(exerciseId))
+                .thenReturn(Optional.of(exercise));
+
+        when(workoutExerciseRepository.existsByWorkoutIdAndExerciseOrder(
+                workoutId,
+                request.exerciseOrder()
+        )).thenReturn(true);
+
+        // Act + Assert
+        DuplicateResourceException exception = assertThrows(
+                DuplicateResourceException.class,
+                () -> workoutExerciseService.create(workoutId, request)
+        );
+
+        assertEquals(
+                "Workout already has an exercise with this order",
+                exception.getMessage()
+        );
+
+        verify(workoutRepository).findById(workoutId);
+        verify(exerciseRepository).findById(exerciseId);
+
+        verify(workoutExerciseRepository).existsByWorkoutIdAndExerciseOrder(
+                workoutId,
+                request.exerciseOrder()
+        );
+
+        verify(workoutExerciseRepository, never()).save(any(WorkoutExercise.class));
+        verifyNoInteractions(workoutExerciseMapper);
+    }
+
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenPatchingExerciseOrderToExistingOrder() {
+        // Arrange
+        Long workoutId = 10L;
+        Long exerciseId = 20L;
+        Long workoutExerciseId = 30L;
+
+        PatchWorkoutExerciseRequest request = new PatchWorkoutExerciseRequest(
+                2,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        Organization organization = createOrganization(100L);
+        User teacher = createTeacher(2L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+        Exercise exercise = createExercise(exerciseId, organization, "Supino reto");
+
+        WorkoutExercise workoutExercise = createWorkoutExercise(
+                workoutExerciseId,
+                workout,
+                exercise
+        );
+
+        when(workoutExerciseRepository.findById(workoutExerciseId))
+                .thenReturn(Optional.of(workoutExercise));
+
+        when(workoutExerciseRepository.existsByWorkoutIdAndExerciseOrderAndIdNot(
+                workoutId,
+                request.exerciseOrder(),
+                workoutExerciseId
+        )).thenReturn(true);
+
+        // Act + Assert
+        DuplicateResourceException exception = assertThrows(
+                DuplicateResourceException.class,
+                () -> workoutExerciseService.patch(workoutId, workoutExerciseId, request)
+        );
+
+        assertEquals(
+                "Workout already has an exercise with this order",
+                exception.getMessage()
+        );
+
+        verify(workoutExerciseRepository).findById(workoutExerciseId);
+
+        verify(workoutExerciseRepository).existsByWorkoutIdAndExerciseOrderAndIdNot(
+                workoutId,
+                request.exerciseOrder(),
+                workoutExerciseId
+        );
+
+        verify(workoutExerciseRepository, never()).save(any(WorkoutExercise.class));
+        verifyNoInteractions(workoutExerciseMapper);
+
+        verifyNoInteractions(
+                workoutRepository,
+                exerciseRepository
+        );
     }
 
 
