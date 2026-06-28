@@ -352,6 +352,59 @@ class StudentWorkoutControllerTest {
         verify(studentWorkoutService).create(eq(studentId), any(CreateStudentWorkoutRequest.class));
     }
 
+    @Test
+    void shouldReturnNotFoundWhenCurrentWorkoutDoesNotExist() throws Exception {
+        // Arrange
+        Long studentId = 1L;
+
+        when(studentWorkoutService.findCurrentWorkout(studentId))
+                .thenThrow(new ResourceNotFoundException(
+                        "Active workout not found student id: " + studentId
+                ));
+
+        // Act + Assert
+        mockMvc.perform(get("/api/students/{studentId}/workouts/current", studentId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("Active workout not found student id: " + studentId))
+                .andExpect(jsonPath("$.path").value("/api/students/" + studentId + "/workouts/current"));
+
+        verify(studentWorkoutService).findCurrentWorkout(studentId);
+    }
+
+    @Test
+    void shouldFindCurrentWorkoutWithEmptyExercisesSuccessfully() throws Exception {
+        // Arrange
+        Long studentId = 1L;
+
+        StudentCurrentWorkoutResponse response = new StudentCurrentWorkoutResponse(
+                studentId,
+                100L,
+                10L,
+                "Treino A",
+                LocalDateTime.of(2026, 6, 23, 10, 0),
+                WorkoutStatus.ACTIVE,
+                List.of()
+        );
+
+        when(studentWorkoutService.findCurrentWorkout(studentId))
+                .thenReturn(response);
+
+        // Act + Assert
+        mockMvc.perform(get("/api/students/{studentId}/workouts/current", studentId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.studentId").value(studentId))
+                .andExpect(jsonPath("$.studentWorkoutId").value(100L))
+                .andExpect(jsonPath("$.workoutId").value(10L))
+                .andExpect(jsonPath("$.workoutName").value("Treino A"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.exercises").isArray())
+                .andExpect(jsonPath("$.exercises").isEmpty());
+
+        verify(studentWorkoutService).findCurrentWorkout(studentId);
+    }
+
     private CreateStudentWorkoutRequest createStudentWorkoutRequest() {
         return new CreateStudentWorkoutRequest(
                 10L

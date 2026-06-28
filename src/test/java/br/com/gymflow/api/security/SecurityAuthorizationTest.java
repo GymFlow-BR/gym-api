@@ -333,6 +333,76 @@ class SecurityAuthorizationTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void shouldBlockStudentFromAccessingAnotherStudentCurrentWorkoutEndpoint() throws Exception {
+        User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(student);
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(get("/api/students/{studentId}/workouts/current", 99L)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Access denied"))
+                .andExpect(jsonPath("$.path").value("/api/students/99/workouts/current"));
+    }
+
+    @Test
+    void shouldAllowAdminToAccessStudentCurrentWorkoutEndpointFromSameOrganization() throws Exception {
+        User admin = createUser(1L, "admin.dev@gymflow.com", UserRole.ADMIN);
+        User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
+
+        String token = jwtService.generateToken(admin);
+
+        when(userRepository.findByEmail(admin.getEmail())).thenReturn(Optional.of(admin));
+        when(userRepository.findById(student.getId())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(get("/api/students/{studentId}/workouts/current", student.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldAllowTeacherToAccessStudentCurrentWorkoutEndpointFromSameOrganization() throws Exception {
+        User teacher = createUser(1L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
+
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+        when(userRepository.findById(student.getId())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(get("/api/students/{studentId}/workouts/current", student.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldBlockTeacherFromAccessingStudentCurrentWorkoutEndpointFromAnotherOrganization() throws Exception {
+        User teacher = createUser(1L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
+
+        Organization anotherOrganization = new Organization();
+        anotherOrganization.setId(2L);
+        anotherOrganization.setOrganizationName("Another Organization");
+        student.setOrganization(anotherOrganization);
+
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+        when(userRepository.findById(student.getId())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(get("/api/students/{studentId}/workouts/current", student.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Access denied"))
+                .andExpect(jsonPath("$.path").value("/api/students/" + student.getId() + "/workouts/current"));
+    }
+
     private User createUser(Long id, String email, UserRole role) {
         Organization organization = new Organization();
         organization.setId(1L);
