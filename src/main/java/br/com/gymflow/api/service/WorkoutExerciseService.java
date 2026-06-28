@@ -74,6 +74,12 @@ public class WorkoutExerciseService {
         validateWorkoutExerciseBelongsToWorkout(workoutExercise, workoutId);
 
         if (request.exerciseOrder() != null) {
+            validateExerciseOrderIsAvailableForUpdate(
+                    workoutId,
+                    request.exerciseOrder(),
+                    workoutExerciseId
+            );
+
             workoutExercise.setExerciseOrder(request.exerciseOrder());
         }
 
@@ -152,6 +158,25 @@ public class WorkoutExerciseService {
                 workoutId,
                 exerciseOrder
         );
+
+        if (alreadyExists) {
+            throw new DuplicateResourceException(
+                    "Workout already has an exercise with this order"
+            );
+        }
+    }
+
+    private void validateExerciseOrderIsAvailableForUpdate(
+            Long workoutId,
+            Integer exerciseOrder,
+            Long workoutExerciseId
+    ) {
+        boolean alreadyExists = workoutExerciseRepository
+                .existsByWorkoutIdAndExerciseOrderAndIdNot(
+                        workoutId,
+                        exerciseOrder,
+                        workoutExerciseId
+                );
 
         if (alreadyExists) {
             throw new DuplicateResourceException(

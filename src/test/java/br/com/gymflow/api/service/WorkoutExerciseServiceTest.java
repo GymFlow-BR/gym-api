@@ -808,6 +808,70 @@ class WorkoutExerciseServiceTest {
         verifyNoInteractions(workoutExerciseMapper);
     }
 
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenPatchingExerciseOrderToExistingOrder() {
+        // Arrange
+        Long workoutId = 10L;
+        Long exerciseId = 20L;
+        Long workoutExerciseId = 30L;
+
+        PatchWorkoutExerciseRequest request = new PatchWorkoutExerciseRequest(
+                2,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        Organization organization = createOrganization(100L);
+        User teacher = createTeacher(2L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+        Exercise exercise = createExercise(exerciseId, organization, "Supino reto");
+
+        WorkoutExercise workoutExercise = createWorkoutExercise(
+                workoutExerciseId,
+                workout,
+                exercise
+        );
+
+        when(workoutExerciseRepository.findById(workoutExerciseId))
+                .thenReturn(Optional.of(workoutExercise));
+
+        when(workoutExerciseRepository.existsByWorkoutIdAndExerciseOrderAndIdNot(
+                workoutId,
+                request.exerciseOrder(),
+                workoutExerciseId
+        )).thenReturn(true);
+
+        // Act + Assert
+        DuplicateResourceException exception = assertThrows(
+                DuplicateResourceException.class,
+                () -> workoutExerciseService.patch(workoutId, workoutExerciseId, request)
+        );
+
+        assertEquals(
+                "Workout already has an exercise with this order",
+                exception.getMessage()
+        );
+
+        verify(workoutExerciseRepository).findById(workoutExerciseId);
+
+        verify(workoutExerciseRepository).existsByWorkoutIdAndExerciseOrderAndIdNot(
+                workoutId,
+                request.exerciseOrder(),
+                workoutExerciseId
+        );
+
+        verify(workoutExerciseRepository, never()).save(any(WorkoutExercise.class));
+        verifyNoInteractions(workoutExerciseMapper);
+
+        verifyNoInteractions(
+                workoutRepository,
+                exerciseRepository
+        );
+    }
+
 
     private Organization createOrganization(Long id) {
         Organization organization = new Organization();

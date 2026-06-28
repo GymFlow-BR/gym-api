@@ -240,7 +240,7 @@ class WorkoutExerciseControllerTest {
     void shouldReturnNotFoundWhenWorkoutExerciseDoesNotExist() throws Exception {
         // Arrange
         Long workoutId = 10L;
-        Long workoutExerciseId = 100L;
+        Long workoutExerciseId = 30L;
 
         when(workoutExerciseService.findById(workoutId, workoutExerciseId))
                 .thenThrow(new ResourceNotFoundException(
@@ -253,7 +253,15 @@ class WorkoutExerciseControllerTest {
                         workoutId,
                         workoutExerciseId
                 ))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value(
+                        "Workout exercise not found with id: " + workoutExerciseId
+                ))
+                .andExpect(jsonPath("$.path").value(
+                        "/api/workouts/" + workoutId + "/exercises/" + workoutExerciseId
+                ));
 
         verify(workoutExerciseService).findById(workoutId, workoutExerciseId);
     }
@@ -314,6 +322,52 @@ class WorkoutExerciseControllerTest {
                 .andExpect(jsonPath("$.path").value("/api/workouts/" + workoutId + "/exercises"));
 
         verify(workoutExerciseService).create(eq(workoutId), any(CreateWorkoutExerciseRequest.class));
+    }
+
+    @Test
+    void shouldReturnConflictWhenPatchingWorkoutExerciseToExistingOrder() throws Exception {
+        // Arrange
+        Long workoutId = 10L;
+        Long workoutExerciseId = 30L;
+
+        PatchWorkoutExerciseRequest request = new PatchWorkoutExerciseRequest(
+                2,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        when(workoutExerciseService.patch(
+                eq(workoutId),
+                eq(workoutExerciseId),
+                any(PatchWorkoutExerciseRequest.class)
+        )).thenThrow(new DuplicateResourceException(
+                "Workout already has an exercise with this order"
+        ));
+
+        // Act + Assert
+        mockMvc.perform(patch(
+                        "/api/workouts/{workoutId}/exercises/{workoutExerciseId}",
+                        workoutId,
+                        workoutExerciseId
+                )
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.message").value("Workout already has an exercise with this order"))
+                .andExpect(jsonPath("$.path").value(
+                        "/api/workouts/" + workoutId + "/exercises/" + workoutExerciseId
+                ));
+
+        verify(workoutExerciseService).patch(
+                eq(workoutId),
+                eq(workoutExerciseId),
+                any(PatchWorkoutExerciseRequest.class)
+        );
     }
 
 
