@@ -350,6 +350,21 @@ class SecurityAuthorizationTest {
     }
 
     @Test
+    void shouldAllowAdminToAccessStudentCurrentWorkoutEndpointFromSameOrganization() throws Exception {
+        User admin = createUser(1L, "admin.dev@gymflow.com", UserRole.ADMIN);
+        User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
+
+        String token = jwtService.generateToken(admin);
+
+        when(userRepository.findByEmail(admin.getEmail())).thenReturn(Optional.of(admin));
+        when(userRepository.findById(student.getId())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(get("/api/students/{studentId}/workouts/current", student.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void shouldAllowTeacherToAccessStudentCurrentWorkoutEndpointFromSameOrganization() throws Exception {
         User teacher = createUser(1L, "teacher.dev@gymflow.com", UserRole.TEACHER);
         User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
