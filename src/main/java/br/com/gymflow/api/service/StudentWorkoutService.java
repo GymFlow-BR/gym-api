@@ -134,6 +134,12 @@ public class StudentWorkoutService {
                         "Active workout not found student id: " + studentId
                 ));
 
+        if (studentWorkout.getWorkout().getStatus() != WorkoutStatus.ACTIVE) {
+            throw new ResourceNotFoundException(
+                    "Active workout not found student id: " + studentId
+            );
+        }
+
         List<WorkoutExercise> workoutExercises = workoutExerciseRepository
                 .findAllByWorkoutIdOrderByExerciseOrderAsc(studentWorkout.getWorkout().getId());
 
