@@ -1,0 +1,15 @@
+package br.com.gymflow.api.auth.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
+public record LoginRequest(
+
+        @NotBlank(message = "o e-mail é obrigatório")
+        @Email(message = "O e-mail deve ser válido")
+        String email,
+
+        @NotBlank(message = "A senha é obrigatória")
+        String password
+) {
+}
