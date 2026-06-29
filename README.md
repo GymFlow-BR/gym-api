@@ -78,21 +78,30 @@ http://localhost:8080
 
 ## Variáveis de ambiente
 
-O projeto pode usar variáveis de ambiente para configurar a conexão com o banco.
+O projeto utiliza variáveis de ambiente para configurar banco de dados, porta da aplicação e JWT.
 
-Exemplo de configuração local:
+Existe um arquivo de exemplo na raiz do projeto:
 
-```text
-DB_URL=jdbc:postgresql://localhost:5432/gymflow_db
-DB_USERNAME=gymflow
-DB_PASSWORD=gymflow
-```
+`.env.example`
 
-Caso esteja rodando pelo IntelliJ IDEA, configure essas variáveis em:
+Para ambiente local, copie o arquivo `.env.example` para `.env`.
 
-```text
-Run > Edit Configurations > Environment variables
-```
+Comando:
+
+`cp .env.example .env`
+
+Variáveis disponíveis:
+
+* `SERVER_PORT`: porta onde a aplicação será executada. Valor local sugerido: `8080`.
+* `SPRING_DATASOURCE_URL`: URL de conexão com o PostgreSQL. Valor local sugerido: `jdbc:postgresql://localhost:5432/gymflow_db`.
+* `SPRING_DATASOURCE_USERNAME`: usuário do banco de dados. Valor local sugerido: `gymflow`.
+* `SPRING_DATASOURCE_PASSWORD`: senha do banco de dados. Valor local sugerido: `gymflow`.
+* `JWT_SECRET`: chave usada para assinar tokens JWT. Valor local sugerido: `change-this-secret-in-production`.
+* `JWT_EXPIRATION_HOURS`: tempo de expiração do token em horas. Valor local sugerido: `2`.
+
+Atenção: o valor de `JWT_SECRET` usado em produção deve ser forte, privado e diferente do valor de desenvolvimento.
+
+Não versionar arquivos `.env` com credenciais reais. Apenas o `.env.example` deve ser mantido no repositório.
 
 ## Swagger/OpenAPI
 
@@ -125,8 +134,9 @@ docs/dev/dev-seed-data.sql
 Esse script cria dados básicos para desenvolvimento:
 
 - Organização de desenvolvimento
-- Professor com role `TEACHER`
-- Aluno com role `STUDENT`
+* Usuário administrador com role `ADMIN`
+* Professor com role `TEACHER`
+* Aluno com role `STUDENT`
 - Perfil do aluno
 - Exercícios ativos
 - Workout modelo ativo

@@ -37,5 +37,5 @@ logging:
 api:
   security:
     token:
-      secret: ${JWT_SECRET:dev-secret}
+      secret: ${JWT_SECRET:dev-secret-change-me}
       expiration-hours: ${JWT_EXPIRATION_HOURS:2}
