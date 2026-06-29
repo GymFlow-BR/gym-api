@@ -21,6 +21,7 @@ public class StudentWorkoutMapper {
         return new StudentWorkoutResponse(
                 studentWorkout.getId(),
                 studentWorkout.getStudent().getId(),
+                studentWorkout.getStudent().getName(),
                 studentWorkout.getWorkout().getId(),
                 studentWorkout.getWorkout().getWorkoutName(),
                 studentWorkout.getAssignedAt(),

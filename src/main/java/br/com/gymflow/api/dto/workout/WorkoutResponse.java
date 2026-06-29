@@ -9,7 +9,7 @@ public record WorkoutResponse(
         Long teacherId,
         String workoutName,
         WorkoutStatus status,
-        LocalDateTime cratedAt,
+        LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
 }
