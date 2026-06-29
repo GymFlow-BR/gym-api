@@ -8,11 +8,13 @@ import br.com.gymflow.api.domain.enums.WorkoutStatus;
 import br.com.gymflow.api.dto.studentWorkoutProgress.StudentCurrentWorkoutExerciseProgressResponse;
 import br.com.gymflow.api.dto.studentWorkoutProgress.StudentCurrentWorkoutProgressResponse;
 import br.com.gymflow.api.dto.studentWorkoutProgress.StudentWorkoutExerciseProgressResponse;
+import br.com.gymflow.api.event.StudentWorkoutExerciseCompletedEvent;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.repository.StudentWorkoutExerciseProgressRepository;
 import br.com.gymflow.api.repository.StudentWorkoutRepository;
 import br.com.gymflow.api.repository.WorkoutExerciseRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,7 @@ public class StudentWorkoutProgressService {
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final StudentWorkoutExerciseProgressRepository progressRepository;
     private final StudentAccessValidator studentAccessValidator;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public StudentWorkoutExerciseProgressResponse completeExercise(
@@ -56,6 +59,16 @@ public class StudentWorkoutProgressService {
         progress.setCompletedAt(LocalDateTime.now());
 
         StudentWorkoutExerciseProgress savedProgress = progressRepository.save(progress);
+
+        eventPublisher.publishEvent(new StudentWorkoutExerciseCompletedEvent(
+                studentWorkout.getStudent().getId(),
+                studentWorkout.getId(),
+                studentWorkout.getWorkout().getId(),
+                workoutExercise.getId(),
+                workoutExercise.getExercise().getId(),
+                workoutExercise.getExercise().getExerciseName(),
+                savedProgress.getCompletedAt()
+        ));
 
         return toProgressResponse(savedProgress);
     }
