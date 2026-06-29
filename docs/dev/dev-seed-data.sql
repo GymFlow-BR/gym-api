@@ -11,6 +11,10 @@
 --
 -- Não usar em produção.
 --
+-- Como executar:
+-- docker exec -i gymflow-postgres psql -U gymflow -d gymflow_db < docs/dev/dev-seed-data.sql
+--
+--
 -- Credenciais padrão de desenvolvimento:
 -- - admin.dev@gymflow.com / 123456
 -- - teacher.dev@gymflow.com / 123456
