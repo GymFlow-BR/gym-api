@@ -11,7 +11,12 @@
 --
 -- Não usar em produção.
 --
+-- Como executar:
+-- docker exec -i gymflow-postgres psql -U gymflow -d gymflow_db < docs/dev/dev-seed-data.sql
+--
+--
 -- Credenciais padrão de desenvolvimento:
+-- - admin.dev@gymflow.com / 123456
 -- - teacher.dev@gymflow.com / 123456
 -- - student.dev@gymflow.com / 123456
 --
@@ -46,6 +51,28 @@ WHERE NOT EXISTS (
 -- ============================================================
 -- Users
 -- ============================================================
+INSERT INTO users (
+    organization_id,
+    user_name,
+    user_email,
+    password_hash,
+    role,
+    active
+)
+SELECT
+    o.organization_id,
+    'Admin Dev',
+    'admin.dev@gymflow.com',
+    '$2a$10$kQ9AoAuxWIJEJf0zsnLR2.9zaQlmraLgKYWe.YrGcinT8OpmkJ/zi',
+    'ADMIN',
+    true
+FROM organizations o
+WHERE o.organization_email = 'dev@gymflow.com'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM users
+    WHERE user_email = 'admin.dev@gymflow.com'
+);
 
 INSERT INTO users (
     organization_id,
@@ -251,7 +278,7 @@ SELECT
     e.exercise_id,
     1,
     4,
-    10,
+    '8-12',
     40.00,
     60,
     'Manter controle do movimento.'
@@ -282,7 +309,7 @@ SELECT
     e.exercise_id,
     2,
     4,
-    12,
+    '8-12',
     60.00,
     90,
     'Atenção à postura durante a execução.'
@@ -313,7 +340,7 @@ SELECT
     e.exercise_id,
     3,
     3,
-    12,
+    '8-12',
     35.00,
     60,
     'Evitar impulso excessivo.'
@@ -365,6 +392,10 @@ AND NOT EXISTS (
 SELECT 'Organization created' AS result, organization_id, organization_name
 FROM organizations
 WHERE organization_email = 'dev@gymflow.com';
+
+SELECT 'Admin created' AS result, user_id, user_name, role
+FROM users
+WHERE user_email = 'admin.dev@gymflow.com';
 
 SELECT 'Teacher created' AS result, user_id, user_name, role
 FROM users

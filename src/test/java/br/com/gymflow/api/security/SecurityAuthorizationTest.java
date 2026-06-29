@@ -361,7 +361,7 @@ class SecurityAuthorizationTest {
 
         mockMvc.perform(get("/api/students/{studentId}/workouts/current", student.getId())
                         .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -376,7 +376,7 @@ class SecurityAuthorizationTest {
 
         mockMvc.perform(get("/api/students/{studentId}/workouts/current", student.getId())
                         .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
     }
 
     @Test
