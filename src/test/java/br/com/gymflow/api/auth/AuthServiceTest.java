@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import br.com.gymflow.api.domain.Organization;
 
 import java.util.Optional;
 
@@ -37,6 +38,10 @@ class AuthServiceTest {
     void shouldLoginSuccessfullyWhenCredentialsAreValid() {
         LoginRequest request = new LoginRequest("teacher.dev@gymflow.com", "123456");
 
+        Organization organization = new Organization();
+        organization.setId(100L);
+        organization.setOrganizationName("GymFlow Academy Dev");
+
         User user = new User();
         user.setId(1L);
         user.setName("Professor Dev");
@@ -44,6 +49,7 @@ class AuthServiceTest {
         user.setPasswordHash("$2a$10$hash");
         user.setRole(UserRole.TEACHER);
         user.setActive(true);
+        user.setOrganization(organization);
 
         when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(request.password(), user.getPasswordHash())).thenReturn(true);
@@ -54,6 +60,7 @@ class AuthServiceTest {
         assertNotNull(response);
         assertEquals("jwt-token", response.token());
         assertEquals(1L, response.userId());
+        assertEquals(100L, response.organizationId());
         assertEquals("Professor Dev", response.name());
         assertEquals("teacher.dev@gymflow.com", response.email());
         assertEquals(UserRole.TEACHER, response.role());

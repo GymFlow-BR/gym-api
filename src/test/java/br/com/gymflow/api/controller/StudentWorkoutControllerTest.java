@@ -75,6 +75,7 @@ class StudentWorkoutControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.studentWorkoutId").value(100L))
                 .andExpect(jsonPath("$.studentId").value(studentId))
+                .andExpect(jsonPath("$.studentName").value("Aluno Teste"))
                 .andExpect(jsonPath("$.workoutId").value(10L))
                 .andExpect(jsonPath("$.workoutName").value("Treino A"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
@@ -97,6 +98,7 @@ class StudentWorkoutControllerTest {
         StudentWorkoutResponse responseB = new StudentWorkoutResponse(
                 200L,
                 studentId,
+                "Aluno Teste",
                 20L,
                 "Treino B",
                 LocalDateTime.of(2026, 6, 23, 11, 0),
@@ -113,11 +115,13 @@ class StudentWorkoutControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].studentWorkoutId").value(100L))
                 .andExpect(jsonPath("$[0].studentId").value(studentId))
+                .andExpect(jsonPath("$[0].studentName").value("Aluno Teste"))
                 .andExpect(jsonPath("$[0].workoutId").value(10L))
                 .andExpect(jsonPath("$[0].workoutName").value("Treino A"))
                 .andExpect(jsonPath("$[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$[1].studentWorkoutId").value(200L))
                 .andExpect(jsonPath("$[1].studentId").value(studentId))
+                .andExpect(jsonPath("$[1].studentName").value("Aluno Teste"))
                 .andExpect(jsonPath("$[1].workoutId").value(20L))
                 .andExpect(jsonPath("$[1].workoutName").value("Treino B"))
                 .andExpect(jsonPath("$[1].status").value("INACTIVE"));
@@ -150,6 +154,7 @@ class StudentWorkoutControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.studentWorkoutId").value(studentWorkoutId))
                 .andExpect(jsonPath("$.studentId").value(studentId))
+                .andExpect(jsonPath("$.studentName").value("Aluno Teste"))
                 .andExpect(jsonPath("$.workoutId").value(10L))
                 .andExpect(jsonPath("$.workoutName").value("Treino A"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
@@ -189,6 +194,7 @@ class StudentWorkoutControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.studentWorkoutId").value(studentWorkoutId))
                 .andExpect(jsonPath("$.studentId").value(studentId))
+                .andExpect(jsonPath("$.studentName").value("Aluno Teste"))
                 .andExpect(jsonPath("$.workoutId").value(10L))
                 .andExpect(jsonPath("$.workoutName").value("Treino A"))
                 .andExpect(jsonPath("$.status").value("INACTIVE"));
@@ -426,6 +432,7 @@ class StudentWorkoutControllerTest {
         return new StudentWorkoutResponse(
                 studentWorkoutId,
                 studentId,
+                "Aluno Teste",
                 workoutId,
                 "Treino A",
                 LocalDateTime.of(2026, 6, 23, 10, 0),

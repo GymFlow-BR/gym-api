@@ -8,6 +8,7 @@ public record StudentWorkoutResponse(
 
         Long studentWorkoutId,
         Long studentId,
+        String studentName,
         Long workoutId,
         String workoutName,
         LocalDateTime assignedAt,

@@ -67,6 +67,9 @@ class WorkoutExerciseControllerTest {
                 .andExpect(jsonPath("$.id").value(100L))
                 .andExpect(jsonPath("$.workoutId").value(workoutId))
                 .andExpect(jsonPath("$.exerciseId").value(20L))
+                .andExpect(jsonPath("$.exerciseName").value("Supino reto"))
+                .andExpect(jsonPath("$.muscleGroup").value("Peito"))
+                .andExpect(jsonPath("$.equipmentName").value("Barra"))
                 .andExpect(jsonPath("$.exerciseOrder").value(1))
                 .andExpect(jsonPath("$.sets").value(4))
                 .andExpect(jsonPath("$.reps").value("8-12"))
@@ -92,6 +95,9 @@ class WorkoutExerciseControllerTest {
                 200L,
                 workoutId,
                 30L,
+                "Crucifixo",
+                "Peito",
+                "Halteres",
                 2,
                 4,
                 "8-12",
@@ -111,6 +117,9 @@ class WorkoutExerciseControllerTest {
                 .andExpect(jsonPath("$[0].id").value(100L))
                 .andExpect(jsonPath("$[0].workoutId").value(workoutId))
                 .andExpect(jsonPath("$[0].exerciseId").value(20L))
+                .andExpect(jsonPath("$[0].exerciseName").value("Supino reto"))
+                .andExpect(jsonPath("$[0].muscleGroup").value("Peito"))
+                .andExpect(jsonPath("$[0].equipmentName").value("Barra"))
                 .andExpect(jsonPath("$[0].exerciseOrder").value(1))
                 .andExpect(jsonPath("$[0].sets").value(4))
                 .andExpect(jsonPath("$[0].reps").value("8-12"))
@@ -120,6 +129,9 @@ class WorkoutExerciseControllerTest {
                 .andExpect(jsonPath("$[1].id").value(200L))
                 .andExpect(jsonPath("$[1].workoutId").value(workoutId))
                 .andExpect(jsonPath("$[1].exerciseId").value(30L))
+                .andExpect(jsonPath("$[1].exerciseName").value("Crucifixo"))
+                .andExpect(jsonPath("$[1].muscleGroup").value("Peito"))
+                .andExpect(jsonPath("$[1].equipmentName").value("Halteres"))
                 .andExpect(jsonPath("$[1].exerciseOrder").value(2))
                 .andExpect(jsonPath("$[1].sets").value(4))
                 .andExpect(jsonPath("$[1].reps").value("8-12"))
@@ -155,6 +167,9 @@ class WorkoutExerciseControllerTest {
                 .andExpect(jsonPath("$.id").value(workoutExerciseId))
                 .andExpect(jsonPath("$.workoutId").value(workoutId))
                 .andExpect(jsonPath("$.exerciseId").value(20L))
+                .andExpect(jsonPath("$.exerciseName").value("Supino reto"))
+                .andExpect(jsonPath("$.muscleGroup").value("Peito"))
+                .andExpect(jsonPath("$.equipmentName").value("Barra"))
                 .andExpect(jsonPath("$.exerciseOrder").value(1))
                 .andExpect(jsonPath("$.sets").value(4))
                 .andExpect(jsonPath("$.reps").value("8-12"))
@@ -177,6 +192,9 @@ class WorkoutExerciseControllerTest {
                 workoutExerciseId,
                 workoutId,
                 20L,
+                "Supino reto",
+                "Peito",
+                "Barra",
                 2,
                 3,
                 "8-12",
@@ -205,6 +223,9 @@ class WorkoutExerciseControllerTest {
                 .andExpect(jsonPath("$.id").value(workoutExerciseId))
                 .andExpect(jsonPath("$.workoutId").value(workoutId))
                 .andExpect(jsonPath("$.exerciseId").value(20L))
+                .andExpect(jsonPath("$.exerciseName").value("Supino reto"))
+                .andExpect(jsonPath("$.muscleGroup").value("Peito"))
+                .andExpect(jsonPath("$.equipmentName").value("Barra"))
                 .andExpect(jsonPath("$.exerciseOrder").value(2))
                 .andExpect(jsonPath("$.sets").value(3))
                 .andExpect(jsonPath("$.reps").value("8-12"))
@@ -403,6 +424,9 @@ class WorkoutExerciseControllerTest {
                 id,
                 workoutId,
                 exerciseId,
+                "Supino reto",
+                "Peito",
+                "Barra",
                 1,
                 4,
                 "8-12",

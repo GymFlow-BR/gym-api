@@ -34,10 +34,11 @@ class AuthControllerTest {
         LoginResponse response = new LoginResponse(
                 "jwt-token",
                 1L,
+                100L,
                 "Professor Dev",
                 "teacher.dev@gymflow.com",
                 UserRole.TEACHER
-        );
+        );;
 
         Mockito.when(authService.login(any())).thenReturn(response);
 
@@ -52,6 +53,7 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("jwt-token"))
                 .andExpect(jsonPath("$.userId").value(1L))
+                .andExpect(jsonPath("$.organizationId").value(100L))
                 .andExpect(jsonPath("$.name").value("Professor Dev"))
                 .andExpect(jsonPath("$.email").value("teacher.dev@gymflow.com"))
                 .andExpect(jsonPath("$.role").value("TEACHER"));
