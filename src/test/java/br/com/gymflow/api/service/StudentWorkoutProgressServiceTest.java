@@ -6,15 +6,18 @@ import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.domain.enums.WorkoutStatus;
 import br.com.gymflow.api.dto.studentWorkoutProgress.StudentCurrentWorkoutProgressResponse;
 import br.com.gymflow.api.dto.studentWorkoutProgress.StudentWorkoutExerciseProgressResponse;
+import br.com.gymflow.api.event.StudentWorkoutExerciseCompletedEvent;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.repository.StudentWorkoutExerciseProgressRepository;
 import br.com.gymflow.api.repository.StudentWorkoutRepository;
 import br.com.gymflow.api.repository.WorkoutExerciseRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,6 +40,9 @@ class StudentWorkoutProgressServiceTest {
 
     @Mock
     private StudentAccessValidator studentAccessValidator;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private StudentWorkoutProgressService studentWorkoutProgressService;
@@ -92,6 +98,21 @@ class StudentWorkoutProgressServiceTest {
                 workoutExerciseId
         );
         verify(progressRepository).save(any(StudentWorkoutExerciseProgress.class));
+
+        ArgumentCaptor<StudentWorkoutExerciseCompletedEvent> eventCaptor =
+                ArgumentCaptor.forClass(StudentWorkoutExerciseCompletedEvent.class);
+
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+        StudentWorkoutExerciseCompletedEvent event = eventCaptor.getValue();
+
+        assertEquals(studentId, event.studentId());
+        assertEquals(studentWorkoutId, event.studentWorkoutId());
+        assertEquals(workoutId, event.workoutId());
+        assertEquals(workoutExerciseId, event.workoutExerciseId());
+        assertEquals(20L, event.exerciseId());
+        assertEquals("Supino reto", event.exerciseName());
+        assertNotNull(event.completedAt());
     }
 
     @Test
@@ -193,6 +214,7 @@ class StudentWorkoutProgressServiceTest {
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
         verify(progressRepository).save(existingProgress);
+        verify(eventPublisher, never()).publishEvent(any(StudentWorkoutExerciseCompletedEvent.class));
     }
 
     @Test
@@ -309,6 +331,7 @@ class StudentWorkoutProgressServiceTest {
         );
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(eventPublisher, never()).publishEvent(any(StudentWorkoutExerciseCompletedEvent.class));
     }
 
     @Test
