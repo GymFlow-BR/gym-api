@@ -36,6 +36,19 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/students/*/workouts/current/exercises/*/complete",
+                                "/api/students/*/workouts/current/exercises/*/uncomplete"
+                        )
+                        .hasRole("STUDENT")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/students/*/workouts/current/progress"
+                        )
+                        .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
+
                         .requestMatchers("/api/organizations/**")
                         .hasRole("ADMIN")
 
