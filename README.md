@@ -98,6 +98,7 @@ Variáveis disponíveis:
 * `SPRING_DATASOURCE_PASSWORD`: senha do banco de dados. Valor local sugerido: `gymflow`.
 * `JWT_SECRET`: chave usada para assinar tokens JWT. Valor local sugerido: `change-this-secret-in-production`.
 * `JWT_EXPIRATION_HOURS`: tempo de expiração do token em horas. Valor local sugerido: `2`.
+* `FRONTEND_URL`: origem local do frontend permitida pelo CORS. Valor local sugerido: http://localhost:5173.
 
 Atenção: o valor de `JWT_SECRET` usado em produção deve ser forte, privado e diferente do valor de desenvolvimento.
 

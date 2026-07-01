@@ -39,3 +39,7 @@ api:
     token:
       secret: ${JWT_SECRET:dev-secret-change-me}
       expiration-hours: ${JWT_EXPIRATION_HOURS:2}
+
+app:
+  cors:
+    allowed-origins: ${FRONTEND_URL:http://localhost:5173}
