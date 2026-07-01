@@ -39,14 +39,15 @@ public class CorsConfig {
 
         configuration.setAllowedHeaders(List.of(
                 "Authorization",
-                "Content-Type"
+                "Content-Type",
+                "X-Requested-With"
         ));
 
         configuration.setExposedHeaders(List.of(
                 "Authorization"
         ));
 
-        configuration.setAllowCredentials(false);
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);

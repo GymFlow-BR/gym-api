@@ -37,6 +37,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/api/students/*/workouts/current/exercises/*/complete",

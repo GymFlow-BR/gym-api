@@ -1,5 +1,6 @@
 package br.com.gymflow.api.config.security;
 
+import br.com.gymflow.api.auth.AuthCookieService;
 import br.com.gymflow.api.auth.JwtService;
 import br.com.gymflow.api.domain.User;
 import br.com.gymflow.api.repository.UserRepository;
@@ -23,6 +24,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    private final AuthCookieService authCookieService;
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
@@ -67,12 +69,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String recoverToken(HttpServletRequest request) {
+        String tokenFromCookie = authCookieService.extractTokenFromCookies(request.getCookies());
+
+        if (tokenFromCookie != null && !tokenFromCookie.isBlank()) {
+            return tokenFromCookie;
+        }
+
         String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
 
         if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
             return null;
         }
 
-        return authorizationHeader.replace(BEARER_PREFIX, "");
+        return authorizationHeader.substring(BEARER_PREFIX.length());
     }
 }
