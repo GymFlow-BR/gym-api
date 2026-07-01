@@ -1,7 +1,8 @@
 package br.com.gymflow.api.auth;
 
 import br.com.gymflow.api.auth.dto.LoginRequest;
-import br.com.gymflow.api.auth.dto.LoginResponse;
+import br.com.gymflow.api.auth.dto.AuthenticatedUserResponse;
+import br.com.gymflow.api.auth.dto.LoginResult;
 import br.com.gymflow.api.domain.User;
 import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.exception.BusinessRuleException;
@@ -55,10 +56,14 @@ class AuthServiceTest {
         when(passwordEncoder.matches(request.password(), user.getPasswordHash())).thenReturn(true);
         when(jwtService.generateToken(user)).thenReturn("jwt-token");
 
-        LoginResponse response = authService.login(request);
+        LoginResult result = authService.login(request);
+
+        assertNotNull(result);
+        assertEquals("jwt-token", result.token());
+
+        AuthenticatedUserResponse response = result.user();
 
         assertNotNull(response);
-        assertEquals("jwt-token", response.token());
         assertEquals(1L, response.userId());
         assertEquals(100L, response.organizationId());
         assertEquals("Professor Dev", response.name());

@@ -1,6 +1,7 @@
 package br.com.gymflow.api.auth;
 
-import br.com.gymflow.api.auth.dto.LoginResponse;
+import br.com.gymflow.api.auth.dto.AuthenticatedUserResponse;
+import br.com.gymflow.api.auth.dto.LoginResult;
 import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.config.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -29,18 +32,25 @@ class AuthControllerTest {
     @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @MockitoBean
+    private AuthCookieService authCookieService;
+
     @Test
     void shouldReturnOkWhenLoginRequestIsValid() throws Exception {
-        LoginResponse response = new LoginResponse(
-                "jwt-token",
+        AuthenticatedUserResponse userResponse = new AuthenticatedUserResponse(
                 1L,
                 100L,
                 "Professor Dev",
                 "teacher.dev@gymflow.com",
                 UserRole.TEACHER
-        );;
+        );
 
-        Mockito.when(authService.login(any())).thenReturn(response);
+        LoginResult loginResult = new LoginResult(
+                "jwt-token",
+                userResponse
+        );
+
+        Mockito.when(authService.login(any())).thenReturn(loginResult);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -51,7 +61,7 @@ class AuthControllerTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("jwt-token"))
+                .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(jsonPath("$.userId").value(1L))
                 .andExpect(jsonPath("$.organizationId").value(100L))
                 .andExpect(jsonPath("$.name").value("Professor Dev"))
@@ -59,6 +69,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.role").value("TEACHER"));
 
         Mockito.verify(authService).login(any());
+        Mockito.verify(authCookieService).addAuthCookie(any(), Mockito.eq("jwt-token"));
     }
 
     @Test
@@ -117,6 +128,38 @@ class AuthControllerTest {
                             """))
                 .andExpect(status().isBadRequest());
 
+        Mockito.verifyNoInteractions(authService);
+    }
+
+    @Test
+    void shouldReturnAuthenticatedUserWhenMeEndpointIsCalled() throws Exception {
+        AuthenticatedUserResponse userResponse = new AuthenticatedUserResponse(
+                1L,
+                100L,
+                "Professor Dev",
+                "teacher.dev@gymflow.com",
+                UserRole.TEACHER
+        );
+
+        Mockito.when(authService.getAuthenticatedUser()).thenReturn(userResponse);
+
+        mockMvc.perform(get("/api/auth/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(1L))
+                .andExpect(jsonPath("$.organizationId").value(100L))
+                .andExpect(jsonPath("$.name").value("Professor Dev"))
+                .andExpect(jsonPath("$.email").value("teacher.dev@gymflow.com"))
+                .andExpect(jsonPath("$.role").value("TEACHER"));
+
+        Mockito.verify(authService).getAuthenticatedUser();
+    }
+
+    @Test
+    void shouldClearAuthCookieWhenLogoutIsCalled() throws Exception {
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isNoContent());
+
+        Mockito.verify(authCookieService).clearAuthCookie(any());
         Mockito.verifyNoInteractions(authService);
     }
 }
