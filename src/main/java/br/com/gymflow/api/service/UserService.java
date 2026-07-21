@@ -75,8 +75,11 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserResponse> findAllByOrganizationIdAndRole(Long organizationId, UserRole role) {
+        User authenticatedUser = getAuthenticatedUser();
+
         getOrganizationById(organizationId);
         validateSameOrganization(organizationId);
+        validateFindByRolePermission(authenticatedUser, role);
 
         return userRepository.findByOrganizationIdAndRole(organizationId, role)
                 .stream()
@@ -178,6 +181,18 @@ public class UserService {
 
     private void validatePatchPermission(User authenticatedUser, User targetUser, UpdateUserRequest request) {
         if (authenticatedUser.getRole() == UserRole.ADMIN) {
+            return;
+        }
+
+        throw new AccessDeniedException("Access denied");
+    }
+
+    private void validateFindByRolePermission(User authenticatedUser, UserRole role) {
+        if (authenticatedUser.getRole() == UserRole.ADMIN) {
+            return;
+        }
+
+        if (authenticatedUser.getRole() == UserRole.TEACHER && role == UserRole.STUDENT) {
             return;
         }
 
