@@ -534,6 +534,154 @@ class UserServiceTest {
         verify(userRepository, never()).save(any());
     }
 
+    @Test
+    void shouldFindStudentsByOrganizationAndRoleWhenAuthenticatedUserIsAdmin() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
+
+        Organization organization = createOrganization(1L);
+
+        User student = createUser(3L, UserRole.STUDENT, 1L);
+
+        UserResponse studentResponse = new UserResponse(
+                3L,
+                1L,
+                "GymFlow Academy Dev",
+                "Test User",
+                "user3@gymflow.com",
+                UserRole.STUDENT,
+                true,
+                null
+        );
+
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
+        when(userRepository.findByOrganizationIdAndRole(1L, UserRole.STUDENT))
+                .thenReturn(List.of(student));
+        when(userMapper.toResponse(student)).thenReturn(studentResponse);
+
+        List<UserResponse> response = userService.findAllByOrganizationIdAndRole(1L, UserRole.STUDENT);
+
+        assertNotNull(response);
+        assertEquals(1, response.size());
+        assertEquals(3L, response.get(0).id());
+        assertEquals(1L, response.get(0).organizationId());
+        assertEquals(UserRole.STUDENT, response.get(0).role());
+
+        verify(organizationRepository).findById(1L);
+        verify(userRepository).findByOrganizationIdAndRole(1L, UserRole.STUDENT);
+        verify(userMapper).toResponse(student);
+    }
+
+    @Test
+    void shouldFindStudentsByOrganizationAndRoleWhenAuthenticatedUserIsTeacher() {
+        User teacher = createUser(2L, UserRole.TEACHER, 1L);
+        authenticate(teacher);
+
+        Organization organization = createOrganization(1L);
+
+        User student = createUser(3L, UserRole.STUDENT, 1L);
+
+        UserResponse studentResponse = new UserResponse(
+                3L,
+                1L,
+                "GymFlow Academy Dev",
+                "Test User",
+                "user3@gymflow.com",
+                UserRole.STUDENT,
+                true,
+                null
+        );
+
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
+        when(userRepository.findByOrganizationIdAndRole(1L, UserRole.STUDENT))
+                .thenReturn(List.of(student));
+        when(userMapper.toResponse(student)).thenReturn(studentResponse);
+
+        List<UserResponse> response = userService.findAllByOrganizationIdAndRole(1L, UserRole.STUDENT);
+
+        assertNotNull(response);
+        assertEquals(1, response.size());
+        assertEquals(3L, response.get(0).id());
+        assertEquals(1L, response.get(0).organizationId());
+        assertEquals(UserRole.STUDENT, response.get(0).role());
+
+        verify(organizationRepository).findById(1L);
+        verify(userRepository).findByOrganizationIdAndRole(1L, UserRole.STUDENT);
+        verify(userMapper).toResponse(student);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenTeacherFindsAdminsByOrganizationAndRole() {
+        User teacher = createUser(2L, UserRole.TEACHER, 1L);
+        authenticate(teacher);
+
+        Organization organization = createOrganization(1L);
+
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
+
+        assertThrows(AccessDeniedException.class, () ->
+                userService.findAllByOrganizationIdAndRole(1L, UserRole.ADMIN)
+        );
+
+        verify(organizationRepository).findById(1L);
+        verify(userRepository, never()).findByOrganizationIdAndRole(anyLong(), any());
+        verifyNoInteractions(userMapper);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenTeacherFindsTeachersByOrganizationAndRole() {
+        User teacher = createUser(2L, UserRole.TEACHER, 1L);
+        authenticate(teacher);
+
+        Organization organization = createOrganization(1L);
+
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
+
+        assertThrows(AccessDeniedException.class, () ->
+                userService.findAllByOrganizationIdAndRole(1L, UserRole.TEACHER)
+        );
+
+        verify(organizationRepository).findById(1L);
+        verify(userRepository, never()).findByOrganizationIdAndRole(anyLong(), any());
+        verifyNoInteractions(userMapper);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenTeacherFindsStudentsFromAnotherOrganization() {
+        User teacher = createUser(2L, UserRole.TEACHER, 1L);
+        authenticate(teacher);
+
+        Organization anotherOrganization = createOrganization(2L);
+
+        when(organizationRepository.findById(2L)).thenReturn(Optional.of(anotherOrganization));
+
+        assertThrows(AccessDeniedException.class, () ->
+                userService.findAllByOrganizationIdAndRole(2L, UserRole.STUDENT)
+        );
+
+        verify(organizationRepository).findById(2L);
+        verify(userRepository, never()).findByOrganizationIdAndRole(anyLong(), any());
+        verifyNoInteractions(userMapper);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenStudentFindsStudentsByOrganizationAndRole() {
+        User student = createUser(3L, UserRole.STUDENT, 1L);
+        authenticate(student);
+
+        Organization organization = createOrganization(1L);
+
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
+
+        assertThrows(AccessDeniedException.class, () ->
+                userService.findAllByOrganizationIdAndRole(1L, UserRole.STUDENT)
+        );
+
+        verify(organizationRepository).findById(1L);
+        verify(userRepository, never()).findByOrganizationIdAndRole(anyLong(), any());
+        verifyNoInteractions(userMapper);
+    }
+
     private void authenticate(User user) {
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
