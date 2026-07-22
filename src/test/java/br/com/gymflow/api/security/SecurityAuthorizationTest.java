@@ -262,7 +262,7 @@ class SecurityAuthorizationTest {
     }
 
     @Test
-    void shouldBlockTeacherFromAccessingUsersPatchEndpoint() throws Exception {
+    void shouldAllowTeacherToAccessUsersPatchEndpoint() throws Exception {
         User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
         String token = jwtService.generateToken(teacher);
 
@@ -276,7 +276,7 @@ class SecurityAuthorizationTest {
                               "name": "Aluno Atualizado"
                             }
                             """))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
     @Test
