@@ -184,6 +184,12 @@ public class UserService {
             return;
         }
 
+        if (authenticatedUser.getRole() == UserRole.TEACHER &&
+                targetUser.getRole() == UserRole.STUDENT &&
+                request.active() == null) {
+            return;
+        }
+
         throw new AccessDeniedException("Access denied");
     }
 
