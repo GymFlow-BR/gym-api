@@ -447,6 +447,126 @@ class UserServiceTest {
     }
 
     @Test
+    void shouldPatchStudentWhenAuthenticatedUserIsTeacherAndTargetUserIsStudent() {
+        User teacher = createUser(1L, UserRole.TEACHER, 1L);
+        authenticate(teacher);
+
+        User targetStudent = createUser(2L, UserRole.STUDENT, 1L);
+
+        UpdateUserRequest request = new UpdateUserRequest(
+                "Aluno Atualizado pelo Professor",
+                "student.updated.by.teacher@gymflow.com",
+                null
+        );
+
+        UserResponse expectedResponse = new UserResponse(
+                2L,
+                1L,
+                "GymFlow Academy Dev",
+                "Aluno Atualizado pelo Professor",
+                "student.updated.by.teacher@gymflow.com",
+                UserRole.STUDENT,
+                true,
+                null
+        );
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(targetStudent));
+        when(userRepository.existsByEmailAndIdNot(request.email(), 2L)).thenReturn(false);
+        when(userRepository.save(targetStudent)).thenReturn(targetStudent);
+        when(userMapper.toResponse(targetStudent)).thenReturn(expectedResponse);
+
+        UserResponse response = userService.patch(2L, request);
+
+        assertNotNull(response);
+        assertEquals(2L, response.id());
+        assertEquals("Aluno Atualizado pelo Professor", response.name());
+        assertEquals("student.updated.by.teacher@gymflow.com", response.email());
+        assertEquals(UserRole.STUDENT, response.role());
+        assertTrue(response.active());
+
+        verify(userRepository).findById(2L);
+        verify(userRepository).existsByEmailAndIdNot(request.email(), 2L);
+        verify(userMapper).updateEntity(targetStudent, request);
+        verify(userRepository).save(targetStudent);
+        verify(userMapper).toResponse(targetStudent);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenTeacherPatchesStudentActiveStatus() {
+        User teacher = createUser(1L, UserRole.TEACHER, 1L);
+        authenticate(teacher);
+
+        User targetStudent = createUser(2L, UserRole.STUDENT, 1L);
+
+        UpdateUserRequest request = new UpdateUserRequest(
+                null,
+                null,
+                false
+        );
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(targetStudent));
+
+        assertThrows(AccessDeniedException.class, () ->
+                userService.patch(2L, request)
+        );
+
+        verify(userRepository).findById(2L);
+        verify(userRepository, never()).existsByEmailAndIdNot(anyString(), anyLong());
+        verify(userMapper, never()).updateEntity(any(), any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenTeacherPatchesAdmin() {
+        User teacher = createUser(1L, UserRole.TEACHER, 1L);
+        authenticate(teacher);
+
+        User targetAdmin = createUser(2L, UserRole.ADMIN, 1L);
+
+        UpdateUserRequest request = new UpdateUserRequest(
+                "Admin Editado Indevidamente",
+                null,
+                null
+        );
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(targetAdmin));
+
+        assertThrows(AccessDeniedException.class, () ->
+                userService.patch(2L, request)
+        );
+
+        verify(userRepository).findById(2L);
+        verify(userRepository, never()).existsByEmailAndIdNot(anyString(), anyLong());
+        verify(userMapper, never()).updateEntity(any(), any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenTeacherPatchesTeacher() {
+        User teacher = createUser(1L, UserRole.TEACHER, 1L);
+        authenticate(teacher);
+
+        User targetTeacher = createUser(2L, UserRole.TEACHER, 1L);
+
+        UpdateUserRequest request = new UpdateUserRequest(
+                "Professor Editado Indevidamente",
+                null,
+                null
+        );
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(targetTeacher));
+
+        assertThrows(AccessDeniedException.class, () ->
+                userService.patch(2L, request)
+        );
+
+        verify(userRepository).findById(2L);
+        verify(userRepository, never()).existsByEmailAndIdNot(anyString(), anyLong());
+        verify(userMapper, never()).updateEntity(any(), any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
     void shouldThrowBusinessRuleExceptionWhenEmailAlreadyExistsOnPatch() {
         User admin = createUser(1L, UserRole.ADMIN, 1L);
         authenticate(admin);
