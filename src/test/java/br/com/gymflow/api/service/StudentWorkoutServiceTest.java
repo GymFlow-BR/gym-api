@@ -92,7 +92,8 @@ class StudentWorkoutServiceTest {
 
         when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
         when(workoutRepository.findById(workoutId)).thenReturn(Optional.of(workout));
-        when(studentWorkoutRepository.existsByStudentIdAndWorkoutId(studentId, workoutId)).thenReturn(false);
+        when(studentWorkoutRepository.findByStudentIdAndWorkoutId(studentId, workoutId))
+                .thenReturn(Optional.empty());
         when(studentWorkoutRepository.findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE)).thenReturn(List.of());
         when(studentWorkoutMapper.toEntity(request)).thenReturn(new StudentWorkout());
         when(studentWorkoutRepository.save(any(StudentWorkout.class))).thenReturn(savedStudentWorkout);
@@ -111,7 +112,7 @@ class StudentWorkoutServiceTest {
         verify(studentAccessValidator).validateStudentAccess(studentId);
         verify(userRepository).findById(studentId);
         verify(workoutRepository).findById(workoutId);
-        verify(studentWorkoutRepository).existsByStudentIdAndWorkoutId(studentId, workoutId);
+        verify(studentWorkoutRepository).findByStudentIdAndWorkoutId(studentId, workoutId);
         verify(studentWorkoutRepository).findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE);
         verify(studentWorkoutMapper).toEntity(request);
         verify(studentWorkoutRepository).save(any(StudentWorkout.class));
@@ -258,7 +259,16 @@ class StudentWorkoutServiceTest {
 
         when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
         when(workoutRepository.findById(workoutId)).thenReturn(Optional.of(workout));
-        when(studentWorkoutRepository.existsByStudentIdAndWorkoutId(studentId, workoutId)).thenReturn(true);
+        StudentWorkout activeStudentWorkout = createStudentWorkout(
+                50L,
+                student,
+                workout,
+                WorkoutStatus.ACTIVE,
+                LocalDateTime.now()
+        );
+
+        when(studentWorkoutRepository.findByStudentIdAndWorkoutId(studentId, workoutId))
+                .thenReturn(Optional.of(activeStudentWorkout));
 
         DuplicateResourceException exception = assertThrows(
                 DuplicateResourceException.class,
@@ -270,7 +280,7 @@ class StudentWorkoutServiceTest {
         verify(studentAccessValidator).validateStudentAccess(studentId);
         verify(userRepository).findById(studentId);
         verify(workoutRepository).findById(workoutId);
-        verify(studentWorkoutRepository).existsByStudentIdAndWorkoutId(studentId, workoutId);
+        verify(studentWorkoutRepository).findByStudentIdAndWorkoutId(studentId, workoutId);
 
         verifyNoInteractions(
                 studentWorkoutMapper,
@@ -325,7 +335,8 @@ class StudentWorkoutServiceTest {
 
         when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
         when(workoutRepository.findById(workoutId)).thenReturn(Optional.of(workout));
-        when(studentWorkoutRepository.existsByStudentIdAndWorkoutId(studentId, workoutId)).thenReturn(false);
+        when(studentWorkoutRepository.findByStudentIdAndWorkoutId(studentId, workoutId))
+                .thenReturn(Optional.empty());
         when(studentWorkoutRepository.findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE))
                 .thenReturn(List.of(activeStudentWorkout));
         when(studentWorkoutMapper.toEntity(request)).thenReturn(newStudentWorkout);
@@ -342,6 +353,77 @@ class StudentWorkoutServiceTest {
         verify(studentAccessValidator).validateStudentAccess(studentId);
         verify(studentWorkoutRepository).saveAll(List.of(activeStudentWorkout));
         verify(studentWorkoutRepository).save(any(StudentWorkout.class));
+    }
+
+    @Test
+    void shouldReactivateInactiveStudentWorkoutWhenAssigningExistingInactiveWorkout() {
+        Long studentId = 1L;
+        Long workoutId = 10L;
+        Long organizationId = 100L;
+
+        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(workoutId);
+
+        Organization organization = createOrganization(organizationId);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+
+        Workout workoutToReactivate = createWorkout(workoutId, teacher, "Treino A");
+        Workout currentWorkout = createWorkout(20L, teacher, "Treino B");
+
+        StudentWorkout inactiveStudentWorkout = createStudentWorkout(
+                50L,
+                student,
+                workoutToReactivate,
+                WorkoutStatus.INACTIVE,
+                LocalDateTime.now().minusDays(3)
+        );
+
+        StudentWorkout currentActiveStudentWorkout = createStudentWorkout(
+                60L,
+                student,
+                currentWorkout,
+                WorkoutStatus.ACTIVE,
+                LocalDateTime.now().minusDays(1)
+        );
+
+        StudentWorkoutResponse expectedResponse = createStudentWorkoutResponse(
+                50L,
+                studentId,
+                workoutId,
+                "Treino A",
+                LocalDateTime.now(),
+                WorkoutStatus.ACTIVE
+        );
+
+        when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(workoutRepository.findById(workoutId)).thenReturn(Optional.of(workoutToReactivate));
+        when(studentWorkoutRepository.findByStudentIdAndWorkoutId(studentId, workoutId))
+                .thenReturn(Optional.of(inactiveStudentWorkout));
+        when(studentWorkoutRepository.findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE))
+                .thenReturn(List.of(currentActiveStudentWorkout));
+        when(studentWorkoutRepository.save(inactiveStudentWorkout)).thenReturn(inactiveStudentWorkout);
+        when(studentWorkoutMapper.toResponse(inactiveStudentWorkout)).thenReturn(expectedResponse);
+
+        StudentWorkoutResponse response = studentWorkoutService.create(studentId, request);
+
+        assertNotNull(response);
+        assertEquals(50L, response.studentWorkoutId());
+        assertEquals(studentId, response.studentId());
+        assertEquals(workoutId, response.workoutId());
+        assertEquals("Treino A", response.workoutName());
+        assertEquals(WorkoutStatus.ACTIVE, inactiveStudentWorkout.getStatus());
+        assertEquals(WorkoutStatus.INACTIVE, currentActiveStudentWorkout.getStatus());
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(userRepository).findById(studentId);
+        verify(workoutRepository).findById(workoutId);
+        verify(studentWorkoutRepository).findByStudentIdAndWorkoutId(studentId, workoutId);
+        verify(studentWorkoutRepository).findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE);
+        verify(studentWorkoutRepository).saveAll(List.of(currentActiveStudentWorkout));
+        verify(studentWorkoutRepository).save(inactiveStudentWorkout);
+        verify(studentWorkoutMapper).toResponse(inactiveStudentWorkout);
+
+        verify(studentWorkoutMapper, never()).toEntity(request);
     }
 
     @Test

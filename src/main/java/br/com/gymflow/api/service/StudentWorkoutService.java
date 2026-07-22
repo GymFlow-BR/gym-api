@@ -43,19 +43,14 @@ public class StudentWorkoutService {
         Workout workout = getWorkoutById(request.workoutId());
 
         validateStudentBelongsToWorkoutOrganization(student, workout);
-        validateStudentWorkoutDoesNotAlreadyExist(studentId, request.workoutId());
 
-        deactivateCurrentActiveWorkouts(studentId);
-
-        StudentWorkout studentWorkout = studentWorkoutMapper.toEntity(request);
-        studentWorkout.setStudent(student);
-        studentWorkout.setWorkout(workout);
-        studentWorkout.setStatus(WorkoutStatus.ACTIVE);
-        studentWorkout.setAssignedAt(LocalDateTime.now());
-
-        StudentWorkout savedStudentWorkout = studentWorkoutRepository.save(studentWorkout);
-
-        return studentWorkoutMapper.toResponse(savedStudentWorkout);
+        return studentWorkoutRepository.findByStudentIdAndWorkoutId(studentId, request.workoutId())
+                .map(existingStudentWorkout ->
+                        reactivateExistingStudentWorkout(studentId, existingStudentWorkout)
+                )
+                .orElseGet(() ->
+                        createNewStudentWorkout(studentId, request, student, workout)
+                );
     }
 
 
@@ -200,14 +195,43 @@ public class StudentWorkoutService {
     }
 
 
-    private void validateStudentWorkoutDoesNotAlreadyExist(Long studentId, Long workoutId) {
-        boolean alreadyExists = studentWorkoutRepository.existsByStudentIdAndWorkoutId(studentId, workoutId);
-
-        if (alreadyExists) {
+    private StudentWorkoutResponse reactivateExistingStudentWorkout(
+            Long studentId,
+            StudentWorkout existingStudentWorkout
+    ) {
+        if (existingStudentWorkout.getStatus() == WorkoutStatus.ACTIVE) {
             throw new DuplicateResourceException(
                     "Student already has this workout assigned"
             );
         }
+
+        deactivateCurrentActiveWorkouts(studentId);
+
+        existingStudentWorkout.setStatus(WorkoutStatus.ACTIVE);
+        existingStudentWorkout.setAssignedAt(LocalDateTime.now());
+
+        StudentWorkout savedStudentWorkout = studentWorkoutRepository.save(existingStudentWorkout);
+
+        return studentWorkoutMapper.toResponse(savedStudentWorkout);
+    }
+
+    private StudentWorkoutResponse createNewStudentWorkout(
+            Long studentId,
+            CreateStudentWorkoutRequest request,
+            User student,
+            Workout workout
+    ) {
+        deactivateCurrentActiveWorkouts(studentId);
+
+        StudentWorkout studentWorkout = studentWorkoutMapper.toEntity(request);
+        studentWorkout.setStudent(student);
+        studentWorkout.setWorkout(workout);
+        studentWorkout.setStatus(WorkoutStatus.ACTIVE);
+        studentWorkout.setAssignedAt(LocalDateTime.now());
+
+        StudentWorkout savedStudentWorkout = studentWorkoutRepository.save(studentWorkout);
+
+        return studentWorkoutMapper.toResponse(savedStudentWorkout);
     }
 
 
