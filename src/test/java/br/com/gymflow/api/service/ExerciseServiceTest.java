@@ -21,6 +21,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import br.com.gymflow.api.domain.enums.ExerciseMediaType;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +41,9 @@ class ExerciseServiceTest {
 
     @Mock
     private ExerciseMapper exerciseMapper;
+
+    @Mock
+    private CloudinaryStorageService cloudinaryStorageService;
 
     @InjectMocks
     private ExerciseService exerciseService;
@@ -327,6 +332,182 @@ class ExerciseServiceTest {
 
         verify(exerciseRepository).findById(1L);
         verify(exerciseRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldUploadExerciseImageSuccessfully() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
+
+        Exercise exercise = createExercise(1L, 1L);
+        ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "supino.png",
+                "image/png",
+                "image-content".getBytes()
+        );
+
+        String imageUrl = "https://res.cloudinary.com/gymflow/image/upload/supino.png";
+
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+        when(cloudinaryStorageService.uploadExerciseMedia(file, ExerciseMediaType.IMAGE))
+                .thenReturn(imageUrl);
+        when(exerciseRepository.save(exercise)).thenReturn(exercise);
+        when(exerciseMapper.toResponse(exercise)).thenReturn(expectedResponse);
+
+        ExerciseResponse response = exerciseService.uploadExerciseImage(1L, file);
+
+        assertNotNull(response);
+        assertSame(expectedResponse, response);
+        assertEquals(imageUrl, exercise.getImageUrl());
+        assertNull(exercise.getVideoUrl());
+
+        verify(exerciseRepository).findById(1L);
+        verify(cloudinaryStorageService).uploadExerciseMedia(file, ExerciseMediaType.IMAGE);
+        verify(exerciseRepository).save(exercise);
+        verify(exerciseMapper).toResponse(exercise);
+    }
+
+    @Test
+    void shouldUploadExerciseVideoSuccessfully() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
+
+        Exercise exercise = createExercise(1L, 1L);
+        ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "supino.mp4",
+                "video/mp4",
+                "video-content".getBytes()
+        );
+
+        String videoUrl = "https://res.cloudinary.com/gymflow/video/upload/supino.mp4";
+
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+        when(cloudinaryStorageService.uploadExerciseMedia(file, ExerciseMediaType.VIDEO))
+                .thenReturn(videoUrl);
+        when(exerciseRepository.save(exercise)).thenReturn(exercise);
+        when(exerciseMapper.toResponse(exercise)).thenReturn(expectedResponse);
+
+        ExerciseResponse response = exerciseService.uploadExerciseVideo(1L, file);
+
+        assertNotNull(response);
+        assertSame(expectedResponse, response);
+        assertNull(exercise.getImageUrl());
+        assertEquals(videoUrl, exercise.getVideoUrl());
+
+        verify(exerciseRepository).findById(1L);
+        verify(cloudinaryStorageService).uploadExerciseMedia(file, ExerciseMediaType.VIDEO);
+        verify(exerciseRepository).save(exercise);
+        verify(exerciseMapper).toResponse(exercise);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenUploadImageToNonExistingExercise() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "supino.png",
+                "image/png",
+                "image-content".getBytes()
+        );
+
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () ->
+                exerciseService.uploadExerciseImage(1L, file)
+        );
+
+        assertEquals("Exercise not found with id: 1", exception.getMessage());
+
+        verify(exerciseRepository).findById(1L);
+        verifyNoInteractions(cloudinaryStorageService);
+        verify(exerciseRepository, never()).save(any());
+        verifyNoInteractions(exerciseMapper);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenUploadVideoToNonExistingExercise() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "supino.mp4",
+                "video/mp4",
+                "video-content".getBytes()
+        );
+
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () ->
+                exerciseService.uploadExerciseVideo(1L, file)
+        );
+
+        assertEquals("Exercise not found with id: 1", exception.getMessage());
+
+        verify(exerciseRepository).findById(1L);
+        verifyNoInteractions(cloudinaryStorageService);
+        verify(exerciseRepository, never()).save(any());
+        verifyNoInteractions(exerciseMapper);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenUploadImageToExerciseFromAnotherOrganization() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
+
+        Exercise exercise = createExercise(1L, 2L);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "supino.png",
+                "image/png",
+                "image-content".getBytes()
+        );
+
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.uploadExerciseImage(1L, file)
+        );
+
+        verify(exerciseRepository).findById(1L);
+        verifyNoInteractions(cloudinaryStorageService);
+        verify(exerciseRepository, never()).save(any());
+        verifyNoInteractions(exerciseMapper);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenUploadVideoToExerciseFromAnotherOrganization() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
+
+        Exercise exercise = createExercise(1L, 2L);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "supino.mp4",
+                "video/mp4",
+                "video-content".getBytes()
+        );
+
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.uploadExerciseVideo(1L, file)
+        );
+
+        verify(exerciseRepository).findById(1L);
+        verifyNoInteractions(cloudinaryStorageService);
+        verify(exerciseRepository, never()).save(any());
+        verifyNoInteractions(exerciseMapper);
     }
 
     private void authenticate(User user) {

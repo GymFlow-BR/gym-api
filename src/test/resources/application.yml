@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/gymflow_db
+    username: gymflow
+    password: gymflow
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+
+cloudinary:
+  cloud-name: test-cloud
+  api-key: test-api-key
+  api-secret: test-api-secret
+
+gymflow:
+  upload:
+    image-max-size: 5242880
+    video-max-size: 52428800
+
+api:
+  security:
+    token:
+      secret: test-secret-key-for-gymflow-tests-test-secret-key
+      expiration-hours: 24
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173
+
+  security:
+    cookie:
+      name: gymflow_session
+      secure: false
+      max-age-seconds: 86400
+      same-site: Lax
