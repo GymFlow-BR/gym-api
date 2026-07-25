@@ -11,8 +11,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -114,6 +116,26 @@ public class ExerciseController {
             UpdateExerciseRequest request
     ) {
         ExerciseResponse response = exerciseService.update(id, request);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/{exerciseId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ExerciseResponse> uploadExerciseImage(
+            @PathVariable Long exerciseId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        ExerciseResponse response = exerciseService.uploadExerciseImage(exerciseId, file);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/{exerciseId}/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ExerciseResponse> uploadExerciseVideo(
+            @PathVariable Long exerciseId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        ExerciseResponse response = exerciseService.uploadExerciseVideo(exerciseId, file);
 
         return ResponseEntity.ok(response);
     }

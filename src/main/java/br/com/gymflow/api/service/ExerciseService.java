@@ -2,6 +2,7 @@ package br.com.gymflow.api.service;
 
 import br.com.gymflow.api.domain.Exercise;
 import br.com.gymflow.api.domain.Organization;
+import br.com.gymflow.api.domain.enums.ExerciseMediaType;
 import br.com.gymflow.api.dto.exercise.CreateExerciseRequest;
 import br.com.gymflow.api.dto.exercise.ExerciseResponse;
 import br.com.gymflow.api.dto.exercise.UpdateExerciseRequest;
@@ -16,6 +17,7 @@ import br.com.gymflow.api.domain.User;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,6 +28,7 @@ public class ExerciseService {
     private final ExerciseRepository exerciseRepository;
     private final OrganizationRepository organizationRepository;
     private final ExerciseMapper exerciseMapper;
+    private final CloudinaryStorageService cloudinaryStorageService;
 
     @Transactional
     public ExerciseResponse create(CreateExerciseRequest request) {
@@ -94,6 +97,42 @@ public class ExerciseService {
         exercise.setActive(false);
 
         exerciseRepository.save(exercise);
+    }
+
+    @Transactional
+    public ExerciseResponse uploadExerciseImage(Long exerciseId, MultipartFile file) {
+        Exercise exercise = getExerciseById(exerciseId);
+
+        validateExerciseBelongsToAuthenticatedOrganization(exercise);
+
+        String imageUrl = cloudinaryStorageService.uploadExerciseMedia(
+                file,
+                ExerciseMediaType.IMAGE
+        );
+
+        exercise.setImageUrl(imageUrl);
+
+        Exercise savedExercise = exerciseRepository.save(exercise);
+
+        return exerciseMapper.toResponse(savedExercise);
+    }
+
+    @Transactional
+    public ExerciseResponse uploadExerciseVideo(Long exerciseId, MultipartFile file) {
+        Exercise exercise = getExerciseById(exerciseId);
+
+        validateExerciseBelongsToAuthenticatedOrganization(exercise);
+
+        String videoUrl = cloudinaryStorageService.uploadExerciseMedia(
+                file,
+                ExerciseMediaType.VIDEO
+        );
+
+        exercise.setVideoUrl(videoUrl);
+
+        Exercise savedExercise = exerciseRepository.save(exercise);
+
+        return exerciseMapper.toResponse(savedExercise);
     }
 
 
