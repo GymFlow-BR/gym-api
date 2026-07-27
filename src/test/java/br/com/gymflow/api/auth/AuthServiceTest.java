@@ -1,11 +1,12 @@
 package br.com.gymflow.api.auth;
 
-import br.com.gymflow.api.auth.dto.LoginRequest;
-import br.com.gymflow.api.auth.dto.AuthenticatedUserResponse;
-import br.com.gymflow.api.auth.dto.LoginResult;
+import br.com.gymflow.api.auth.dto.*;
 import br.com.gymflow.api.domain.User;
+import br.com.gymflow.api.domain.enums.OrganizationType;
 import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.exception.BusinessRuleException;
+import br.com.gymflow.api.exception.DuplicateResourceException;
+import br.com.gymflow.api.repository.OrganizationRepository;
 import br.com.gymflow.api.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,8 +33,119 @@ class AuthServiceTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private OrganizationRepository organizationRepository;
+
     @InjectMocks
     private AuthService authService;
+
+    @Test
+    void shouldRegisterOrganizationAndAdminSuccessfully() {
+        RegisterOrganizationRequest request = new RegisterOrganizationRequest(
+                "GymFlow Academy",
+                OrganizationType.ACADEMY,
+                "contato@gymflowacademy.com",
+                "11999999999",
+                "Samuel Gomes",
+                "samuel@gymflowacademy.com",
+                "123456"
+        );
+
+        when(organizationRepository.existsByOrganizationEmail(request.organizationEmail()))
+                .thenReturn(false);
+        when(userRepository.existsByEmail(request.adminEmail()))
+                .thenReturn(false);
+        when(passwordEncoder.encode(request.password()))
+                .thenReturn("encoded-password");
+
+        when(organizationRepository.save(any(Organization.class)))
+                .thenAnswer(invocation -> {
+                    Organization organization = invocation.getArgument(0);
+                    organization.setId(10L);
+                    return organization;
+                });
+
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> {
+                    User user = invocation.getArgument(0);
+                    user.setId(20L);
+                    return user;
+                });
+
+        RegisterOrganizationResponse response = authService.registerOrganization(request);
+
+        assertNotNull(response);
+        assertEquals(10L, response.organizationId());
+        assertEquals("GymFlow Academy", response.organizationName());
+        assertEquals(OrganizationType.ACADEMY, response.organizationType());
+        assertEquals(20L, response.adminUserId());
+        assertEquals("Samuel Gomes", response.adminName());
+        assertEquals("samuel@gymflowacademy.com", response.adminEmail());
+
+        verify(organizationRepository).existsByOrganizationEmail(request.organizationEmail());
+        verify(userRepository).existsByEmail(request.adminEmail());
+        verify(passwordEncoder).encode(request.password());
+        verify(organizationRepository).save(any(Organization.class));
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenOrganizationEmailAlreadyExists() {
+        RegisterOrganizationRequest request = new RegisterOrganizationRequest(
+                "GymFlow Academy",
+                OrganizationType.ACADEMY,
+                "contato@gymflowacademy.com",
+                "11999999999",
+                "Samuel Gomes",
+                "samuel@gymflowacademy.com",
+                "123456"
+        );
+
+        when(organizationRepository.existsByOrganizationEmail(request.organizationEmail()))
+                .thenReturn(true);
+
+        DuplicateResourceException exception = assertThrows(DuplicateResourceException.class, () ->
+                authService.registerOrganization(request)
+        );
+
+        assertEquals("Organization email already in use", exception.getMessage());
+
+        verify(organizationRepository).existsByOrganizationEmail(request.organizationEmail());
+        verifyNoInteractions(passwordEncoder);
+        verify(userRepository, never()).existsByEmail(anyString());
+        verify(organizationRepository, never()).save(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenAdminEmailAlreadyExists() {
+        RegisterOrganizationRequest request = new RegisterOrganizationRequest(
+                "GymFlow Academy",
+                OrganizationType.ACADEMY,
+                "contato@gymflowacademy.com",
+                "11999999999",
+                "Samuel Gomes",
+                "samuel@gymflowacademy.com",
+                "123456"
+        );
+
+        when(organizationRepository.existsByOrganizationEmail(request.organizationEmail()))
+                .thenReturn(false);
+        when(userRepository.existsByEmail(request.adminEmail()))
+                .thenReturn(true);
+
+        DuplicateResourceException exception = assertThrows(DuplicateResourceException.class, () ->
+                authService.registerOrganization(request)
+        );
+
+        assertEquals("User email already in use", exception.getMessage());
+
+        verify(organizationRepository).existsByOrganizationEmail(request.organizationEmail());
+        verify(userRepository).existsByEmail(request.adminEmail());
+        verifyNoInteractions(passwordEncoder);
+        verify(organizationRepository, never()).save(any());
+        verify(userRepository, never()).save(any());
+    }
 
     @Test
     void shouldLoginSuccessfullyWhenCredentialsAreValid() {

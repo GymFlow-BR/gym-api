@@ -2,6 +2,8 @@ package br.com.gymflow.api.auth;
 
 import br.com.gymflow.api.auth.dto.AuthenticatedUserResponse;
 import br.com.gymflow.api.auth.dto.LoginResult;
+import br.com.gymflow.api.auth.dto.RegisterOrganizationResponse;
+import br.com.gymflow.api.domain.enums.OrganizationType;
 import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.config.security.JwtAuthenticationFilter;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,64 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthCookieService authCookieService;
+
+    @Test
+    void shouldReturnCreatedWhenRegisterRequestIsValid() throws Exception {
+        RegisterOrganizationResponse response = new RegisterOrganizationResponse(
+                1L,
+                "GymFlow Academy",
+                OrganizationType.ACADEMY,
+                10L,
+                "Samuel Gomes",
+                "samuel@gymflowacademy.com"
+        );
+
+        Mockito.when(authService.registerOrganization(any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "organizationName": "GymFlow Academy",
+                              "organizationType": "ACADEMY",
+                              "organizationEmail": "contato@gymflowacademy.com",
+                              "organizationPhone": "11999999999",
+                              "adminName": "Samuel Gomes",
+                              "adminEmail": "samuel@gymflowacademy.com",
+                              "password": "123456"
+                            }
+                            """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.organizationId").value(1L))
+                .andExpect(jsonPath("$.organizationName").value("GymFlow Academy"))
+                .andExpect(jsonPath("$.organizationType").value("ACADEMY"))
+                .andExpect(jsonPath("$.adminUserId").value(10L))
+                .andExpect(jsonPath("$.adminName").value("Samuel Gomes"))
+                .andExpect(jsonPath("$.adminEmail").value("samuel@gymflowacademy.com"));
+
+        Mockito.verify(authService).registerOrganization(any());
+        Mockito.verifyNoInteractions(authCookieService);
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenRegisterRequestIsInvalid() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "organizationName": "",
+                              "organizationType": "ACADEMY",
+                              "organizationEmail": "invalid-email",
+                              "adminName": "",
+                              "adminEmail": "invalid-email",
+                              "password": "123"
+                            }
+                            """))
+                .andExpect(status().isBadRequest());
+
+        Mockito.verifyNoInteractions(authService);
+        Mockito.verifyNoInteractions(authCookieService);
+    }
 
     @Test
     void shouldReturnOkWhenLoginRequestIsValid() throws Exception {
