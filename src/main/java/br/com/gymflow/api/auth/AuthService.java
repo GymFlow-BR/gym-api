@@ -30,13 +30,16 @@ public class AuthService {
 
     @Transactional
     public RegisterOrganizationResponse registerOrganization(RegisterOrganizationRequest request) {
-        validateOrganizationEmailIsAvailable(request.organizationEmail());
-        validateAdminEmailIsAvailable(request.adminEmail());
+        String organizationEmail = normalizeEmail(request.organizationEmail());
+        String adminEmail = normalizeEmail(request.adminEmail());
+
+        validateOrganizationEmailIsAvailable(organizationEmail);
+        validateAdminEmailIsAvailable(adminEmail);
 
         Organization organization = new Organization();
         organization.setOrganizationName(request.organizationName().trim());
         organization.setOrganizationType(request.organizationType());
-        organization.setOrganizationEmail(request.organizationEmail().trim());
+        organization.setOrganizationEmail(organizationEmail);
         organization.setOrganizationPhone(normalizeOptionalValue(request.organizationPhone()));
         organization.setActive(true);
 
@@ -45,7 +48,7 @@ public class AuthService {
         User adminUser = new User();
         adminUser.setOrganization(savedOrganization);
         adminUser.setName(request.adminName().trim());
-        adminUser.setEmail(request.adminEmail().trim());
+        adminUser.setEmail(adminEmail);
         adminUser.setPasswordHash(passwordEncoder.encode(request.password()));
         adminUser.setRole(UserRole.ADMIN);
         adminUser.setActive(true);
@@ -64,7 +67,9 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public LoginResult login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.email())
+        String email = normalizeEmail(request.email());
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessRuleException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
@@ -106,13 +111,13 @@ public class AuthService {
     }
 
     private void validateOrganizationEmailIsAvailable(String organizationEmail) {
-        if (organizationRepository.existsByOrganizationEmail(organizationEmail.trim())) {
+        if (organizationRepository.existsByOrganizationEmail(organizationEmail)) {
             throw new DuplicateResourceException("Organization email already in use");
         }
     }
 
     private void validateAdminEmailIsAvailable(String adminEmail) {
-        if (userRepository.existsByEmail(adminEmail.trim())) {
+        if (userRepository.existsByEmail(adminEmail)) {
             throw new DuplicateResourceException("User email already in use");
         }
     }
@@ -123,5 +128,9 @@ public class AuthService {
         }
 
         return value.trim();
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase();
     }
 }
