@@ -19,6 +19,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
+import br.com.gymflow.api.exception.DuplicateResourceException;
 
 import java.util.List;
 
@@ -38,6 +39,11 @@ public class ExerciseService {
         validateUserCanManageExercises(authenticatedUser);
 
         Organization organization = authenticatedUser.getOrganization();
+
+        validateExerciseNameDoesNotExistOnCreate(
+                organization.getId(),
+                request.exerciseName()
+        );
 
         Exercise exercise = exerciseMapper.toEntity(request);
         exercise.setOrganization(organization);
@@ -87,6 +93,12 @@ public class ExerciseService {
         Exercise exercise = getExerciseById(id);
 
         validateExerciseBelongsToAuthenticatedOrganization(exercise);
+
+        validateExerciseNameDoesNotExistOnUpdate(
+                exercise.getOrganization().getId(),
+                request.exerciseName(),
+                exercise.getId()
+        );
 
         exerciseMapper.updateEntity(exercise, request);
 
@@ -196,6 +208,35 @@ public class ExerciseService {
     private void validateUserCanManageExercises(User user) {
         if (user.getRole() != UserRole.ADMIN && user.getRole() != UserRole.TEACHER) {
             throw new AccessDeniedException("Access denied");
+        }
+    }
+
+    private void validateExerciseNameDoesNotExistOnCreate(Long organizationId, String exerciseName) {
+        boolean exerciseNameAlreadyExists =
+                exerciseRepository.existsByOrganizationIdAndExerciseNameIgnoreCase(
+                        organizationId,
+                        exerciseName
+                );
+
+        if (exerciseNameAlreadyExists) {
+            throw new DuplicateResourceException("Já existe um exercício com este nome nesta organização.");
+        }
+    }
+
+    private void validateExerciseNameDoesNotExistOnUpdate(Long organizationId, String exerciseName, Long exerciseId) {
+        if (exerciseName == null) {
+            return;
+        }
+
+        boolean exerciseNameAlreadyExists =
+                exerciseRepository.existsByOrganizationIdAndExerciseNameIgnoreCaseAndIdNot(
+                        organizationId,
+                        exerciseName,
+                        exerciseId
+                );
+
+        if (exerciseNameAlreadyExists) {
+            throw new DuplicateResourceException("Já existe um exercício com este nome nesta organização.");
         }
     }
 

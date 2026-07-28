@@ -3,10 +3,12 @@ package br.com.gymflow.api.service;
 import br.com.gymflow.api.domain.Exercise;
 import br.com.gymflow.api.domain.Organization;
 import br.com.gymflow.api.domain.User;
+import br.com.gymflow.api.domain.enums.ExerciseMediaType;
 import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.dto.exercise.CreateExerciseRequest;
 import br.com.gymflow.api.dto.exercise.ExerciseResponse;
 import br.com.gymflow.api.dto.exercise.UpdateExerciseRequest;
+import br.com.gymflow.api.exception.DuplicateResourceException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.ExerciseMapper;
 import br.com.gymflow.api.repository.ExerciseRepository;
@@ -17,12 +19,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import br.com.gymflow.api.domain.enums.ExerciseMediaType;
-import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -71,6 +72,11 @@ class ExerciseServiceTest {
         Exercise savedExercise = createExercise(1L, 1L);
         ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
 
+        when(exerciseRepository.existsByOrganizationIdAndExerciseNameIgnoreCase(
+                1L,
+                request.exerciseName()
+        )).thenReturn(false);
+
         when(exerciseMapper.toEntity(request)).thenReturn(exerciseToSave);
         when(exerciseRepository.save(exerciseToSave)).thenReturn(savedExercise);
         when(exerciseMapper.toResponse(savedExercise)).thenReturn(expectedResponse);
@@ -81,12 +87,49 @@ class ExerciseServiceTest {
         assertSame(expectedResponse, response);
         assertEquals(admin.getOrganization(), exerciseToSave.getOrganization());
 
+        verify(exerciseRepository).existsByOrganizationIdAndExerciseNameIgnoreCase(
+                1L,
+                request.exerciseName()
+        );
         verify(exerciseMapper).toEntity(request);
         verify(exerciseRepository).save(exerciseToSave);
         verify(exerciseMapper).toResponse(savedExercise);
         verifyNoInteractions(organizationRepository);
     }
 
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenCreateExerciseWithDuplicatedNameInSameOrganization() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
+
+        CreateExerciseRequest request = new CreateExerciseRequest(
+                "Supino reto",
+                "Peito",
+                "Exercício duplicado",
+                "Barra",
+                null,
+                null
+        );
+
+        when(exerciseRepository.existsByOrganizationIdAndExerciseNameIgnoreCase(
+                1L,
+                request.exerciseName()
+        )).thenReturn(true);
+
+        DuplicateResourceException exception = assertThrows(DuplicateResourceException.class, () ->
+                exerciseService.create(request)
+        );
+
+        assertEquals("Já existe um exercício com este nome nesta organização.", exception.getMessage());
+
+        verify(exerciseRepository).existsByOrganizationIdAndExerciseNameIgnoreCase(
+                1L,
+                request.exerciseName()
+        );
+        verify(exerciseMapper, never()).toEntity(any());
+        verify(exerciseRepository, never()).save(any());
+        verifyNoInteractions(organizationRepository);
+    }
 
     @Test
     void shouldFindAllExercisesSuccessfully() {
@@ -204,6 +247,13 @@ class ExerciseServiceTest {
         ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
 
         when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+
+        when(exerciseRepository.existsByOrganizationIdAndExerciseNameIgnoreCaseAndIdNot(
+                1L,
+                request.exerciseName(),
+                1L
+        )).thenReturn(false);
+
         when(exerciseRepository.save(exercise)).thenReturn(exercise);
         when(exerciseMapper.toResponse(exercise)).thenReturn(expectedResponse);
 
@@ -213,9 +263,54 @@ class ExerciseServiceTest {
         assertSame(expectedResponse, response);
 
         verify(exerciseRepository).findById(1L);
+        verify(exerciseRepository).existsByOrganizationIdAndExerciseNameIgnoreCaseAndIdNot(
+                1L,
+                request.exerciseName(),
+                1L
+        );
         verify(exerciseMapper).updateEntity(exercise, request);
         verify(exerciseRepository).save(exercise);
         verify(exerciseMapper).toResponse(exercise);
+    }
+
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenUpdateExerciseWithDuplicatedNameInSameOrganization() {
+        User admin = createUser(1L, UserRole.ADMIN, 1L);
+        authenticate(admin);
+
+        Exercise exercise = createExercise(1L, 1L);
+
+        UpdateExerciseRequest request = new UpdateExerciseRequest(
+                "Agachamento livre",
+                "Pernas",
+                "Descrição atualizada",
+                "Barra",
+                null,
+                null
+        );
+
+        when(exerciseRepository.findById(1L)).thenReturn(Optional.of(exercise));
+
+        when(exerciseRepository.existsByOrganizationIdAndExerciseNameIgnoreCaseAndIdNot(
+                1L,
+                request.exerciseName(),
+                1L
+        )).thenReturn(true);
+
+        DuplicateResourceException exception = assertThrows(DuplicateResourceException.class, () ->
+                exerciseService.update(1L, request)
+        );
+
+        assertEquals("Já existe um exercício com este nome nesta organização.", exception.getMessage());
+
+        verify(exerciseRepository).findById(1L);
+        verify(exerciseRepository).existsByOrganizationIdAndExerciseNameIgnoreCaseAndIdNot(
+                1L,
+                request.exerciseName(),
+                1L
+        );
+        verify(exerciseMapper, never()).updateEntity(any(), any());
+        verify(exerciseRepository, never()).save(any());
     }
 
     @Test
@@ -456,17 +551,6 @@ class ExerciseServiceTest {
         verifyNoInteractions(exerciseMapper);
     }
 
-    private void authenticate(User user) {
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                        user,
-                        null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-                );
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-    }
-
     @Test
     void shouldThrowAccessDeniedExceptionWhenStudentCreatesExercise() {
         User student = createUser(1L, UserRole.STUDENT, 1L);
@@ -488,6 +572,7 @@ class ExerciseServiceTest {
         verifyNoInteractions(organizationRepository);
         verifyNoInteractions(exerciseRepository);
         verifyNoInteractions(exerciseMapper);
+        verifyNoInteractions(cloudinaryStorageService);
     }
 
     @Test
@@ -571,6 +656,17 @@ class ExerciseServiceTest {
         verifyNoInteractions(exerciseRepository);
         verifyNoInteractions(exerciseMapper);
         verifyNoInteractions(cloudinaryStorageService);
+    }
+
+    private void authenticate(User user) {
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        user,
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     private User createUser(Long id, UserRole role, Long organizationId) {

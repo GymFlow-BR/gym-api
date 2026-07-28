@@ -10,4 +10,15 @@ public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
     List<Exercise> findByOrganizationId(Long organizationId);
 
     List<Exercise> findByOrganizationIdAndActiveTrue(Long organizationId);
+
+    boolean existsByOrganizationIdAndExerciseNameIgnoreCase(
+            Long organizationId,
+            String exerciseName
+    );
+
+    boolean existsByOrganizationIdAndExerciseNameIgnoreCaseAndIdNot(
+            Long organizationId,
+            String exerciseName,
+            Long id
+    );
 }
