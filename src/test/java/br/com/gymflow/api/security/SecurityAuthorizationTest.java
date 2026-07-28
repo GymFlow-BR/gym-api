@@ -661,6 +661,29 @@ class SecurityAuthorizationTest {
     }
 
     @Test
+    void shouldAllowAdminToFindUsersByRoleTeacher() throws Exception {
+        User admin = createUser(1L, "admin.dev@gymflow.com", UserRole.ADMIN);
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+
+        String token = jwtService.generateToken(admin);
+
+        when(userRepository.findByEmail(admin.getEmail())).thenReturn(Optional.of(admin));
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(admin.getOrganization()));
+        when(userRepository.findByOrganizationIdAndRole(1L, UserRole.TEACHER)).thenReturn(List.of(teacher));
+
+        mockMvc.perform(get("/api/users/by-organization/{organizationId}/by-role", 1L)
+                        .param("role", "TEACHER")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(teacher.getId()))
+                .andExpect(jsonPath("$[0].organizationId").value(1L))
+                .andExpect(jsonPath("$[0].organizationName").value("GymFlow Academy Dev"))
+                .andExpect(jsonPath("$[0].email").value("teacher.dev@gymflow.com"))
+                .andExpect(jsonPath("$[0].role").value("TEACHER"))
+                .andExpect(jsonPath("$[0].active").value(true));
+    }
+
+    @Test
     void shouldBlockTeacherFromFindingUsersByRoleTeacher() throws Exception {
         User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
         String token = jwtService.generateToken(teacher);
