@@ -16,12 +16,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -46,7 +50,6 @@ class UserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "organizationId": 1,
                                   "name": "Aluno Teste",
                                   "email": "student.test@gymflow.com",
                                   "password": "123456",
@@ -125,12 +128,12 @@ class UserControllerTest {
         mockMvc.perform(patch("/api/users/{id}", 2L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                            {
-                              "name": "Aluno Atualizado",
-                              "email": "student.updated@gymflow.com",
-                              "active": true
-                            }
-                            """))
+                                {
+                                  "name": "Aluno Atualizado",
+                                  "email": "student.updated@gymflow.com",
+                                  "active": true
+                                }
+                                """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(2L))
                 .andExpect(jsonPath("$.name").value("Aluno Atualizado"))
@@ -156,14 +159,13 @@ class UserControllerTest {
         mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                            {
-                              "organizationId": 1,
-                              "name": "Aluno Teste",
-                              "email": "invalid-email",
-                              "password": "123456",
-                              "role": "STUDENT"
-                            }
-                            """))
+                                {
+                                  "name": "Aluno Teste",
+                                  "email": "invalid-email",
+                                  "password": "123456",
+                                  "role": "STUDENT"
+                                }
+                                """))
                 .andExpect(status().isBadRequest());
 
         Mockito.verifyNoMoreInteractions(userService);
@@ -174,14 +176,13 @@ class UserControllerTest {
         mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                            {
-                              "organizationId": 1,
-                              "name": "Aluno Teste",
-                              "email": "student.test@gymflow.com",
-                              "password": "123",
-                              "role": "STUDENT"
-                            }
-                            """))
+                                {
+                                  "name": "Aluno Teste",
+                                  "email": "student.test@gymflow.com",
+                                  "password": "123",
+                                  "role": "STUDENT"
+                                }
+                                """))
                 .andExpect(status().isBadRequest());
 
         Mockito.verifyNoMoreInteractions(userService);
@@ -192,13 +193,12 @@ class UserControllerTest {
         mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                            {
-                              "organizationId": 1,
-                              "name": "Aluno Teste",
-                              "email": "student.test@gymflow.com",
-                              "password": "123456"
-                            }
-                            """))
+                                {
+                                  "name": "Aluno Teste",
+                                  "email": "student.test@gymflow.com",
+                                  "password": "123456"
+                                }
+                                """))
                 .andExpect(status().isBadRequest());
 
         Mockito.verifyNoMoreInteractions(userService);
@@ -209,10 +209,10 @@ class UserControllerTest {
         mockMvc.perform(patch("/api/users/{id}", 2L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                            {
-                              "email": "invalid-email"
-                            }
-                            """))
+                                {
+                                  "email": "invalid-email"
+                                }
+                                """))
                 .andExpect(status().isBadRequest());
 
         Mockito.verifyNoMoreInteractions(userService);
