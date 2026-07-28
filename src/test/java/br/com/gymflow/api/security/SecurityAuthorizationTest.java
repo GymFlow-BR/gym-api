@@ -4,6 +4,7 @@ import br.com.gymflow.api.auth.JwtService;
 import br.com.gymflow.api.domain.Organization;
 import br.com.gymflow.api.domain.User;
 import br.com.gymflow.api.domain.enums.UserRole;
+import br.com.gymflow.api.repository.OrganizationRepository;
 import br.com.gymflow.api.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,16 +13,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -39,9 +42,24 @@ class SecurityAuthorizationTest {
     @MockitoBean
     private UserRepository userRepository;
 
+    @MockitoBean
+    private OrganizationRepository organizationRepository;
+
     @Test
     void shouldBlockPrivateEndpointWhenTokenIsMissing() throws Exception {
         mockMvc.perform(get("/api/workouts"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
+                .andExpect(jsonPath("$.message").value("Authentication is required"))
+                .andExpect(jsonPath("$.path").value("/api/workouts"));
+    }
+
+    @Test
+    void shouldBlockPrivateEndpointWhenTokenIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/workouts")
+                        .header("Authorization", "Bearer invalid-token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.status").value(401))
@@ -79,20 +97,6 @@ class SecurityAuthorizationTest {
                 .andExpect(jsonPath("$.path").value("/api/exercises"));
     }
 
-
-
-    @Test
-    void shouldBlockPrivateEndpointWhenTokenIsInvalid() throws Exception {
-        mockMvc.perform(get("/api/workouts")
-                        .header("Authorization", "Bearer invalid-token"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.status").value(401))
-                .andExpect(jsonPath("$.error").value("Unauthorized"))
-                .andExpect(jsonPath("$.message").value("Authentication is required"))
-                .andExpect(jsonPath("$.path").value("/api/workouts"));
-    }
-
     @Test
     void shouldAllowStudentToAccessStudentsGetEndpoint() throws Exception {
         User student = createUser(2L, "student.dev@gymflow.com", UserRole.STUDENT);
@@ -116,10 +120,10 @@ class SecurityAuthorizationTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
                         .content("""
-                            {
-                              "workoutId": 1
-                            }
-                            """))
+                                {
+                                  "workoutId": 1
+                                }
+                                """))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.status").value(403))
@@ -139,10 +143,10 @@ class SecurityAuthorizationTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
                         .content("""
-                            {
-                              "status": "INACTIVE"
-                            }
-                            """))
+                                {
+                                  "status": "INACTIVE"
+                                }
+                                """))
                 .andExpect(status().isForbidden());
     }
 
@@ -210,14 +214,13 @@ class SecurityAuthorizationTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
                         .content("""
-                            {
-                              "organizationId": 1,
-                              "name": "",
-                              "email": "invalid-email",
-                              "password": "123",
-                              "role": "STUDENT"
-                            }
-                            """))
+                                {
+                                  "name": "",
+                                  "email": "invalid-email",
+                                  "password": "123",
+                                  "role": "STUDENT"
+                                }
+                                """))
                 .andExpect(status().isBadRequest());
     }
 
@@ -232,14 +235,13 @@ class SecurityAuthorizationTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
                         .content("""
-                            {
-                              "organizationId": 1,
-                              "name": "Aluno Teste",
-                              "email": "student.test@gymflow.com",
-                              "password": "123456",
-                              "role": "STUDENT"
-                            }
-                            """))
+                                {
+                                  "name": "Aluno Teste",
+                                  "email": "student.test@gymflow.com",
+                                  "password": "123456",
+                                  "role": "STUDENT"
+                                }
+                                """))
                 .andExpect(status().isForbidden());
     }
 
@@ -254,10 +256,10 @@ class SecurityAuthorizationTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
                         .content("""
-                            {
-                              "email": "invalid-email"
-                            }
-                            """))
+                                {
+                                  "email": "invalid-email"
+                                }
+                                """))
                 .andExpect(status().isBadRequest());
     }
 
@@ -272,10 +274,10 @@ class SecurityAuthorizationTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
                         .content("""
-                            {
-                              "name": "Aluno Atualizado"
-                            }
-                            """))
+                                {
+                                  "name": "Aluno Atualizado"
+                                }
+                                """))
                 .andExpect(status().isNotFound());
     }
 
@@ -290,10 +292,10 @@ class SecurityAuthorizationTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
                         .content("""
-                            {
-                              "name": "Aluno Atualizado"
-                            }
-                            """))
+                                {
+                                  "name": "Aluno Atualizado"
+                                }
+                                """))
                 .andExpect(status().isForbidden());
     }
 
@@ -428,6 +430,270 @@ class SecurityAuthorizationTest {
                 .andExpect(jsonPath("$.path").value(
                         "/api/students/" + student.getId() + "/workouts/current"
                 ));
+    }
+
+    @Test
+    void shouldAllowAdminToCreateTeacherUser() throws Exception {
+        User admin = createUser(1L, "admin.dev@gymflow.com", UserRole.ADMIN);
+        String token = jwtService.generateToken(admin);
+
+        when(userRepository.findByEmail(admin.getEmail())).thenReturn(Optional.of(admin));
+        when(userRepository.existsByEmail("teacher.new@gymflow.com")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User savedUser = invocation.getArgument(0);
+            savedUser.setId(10L);
+            return savedUser;
+        });
+
+        mockMvc.perform(post("/api/users")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "name": "Professor Novo",
+                                  "email": "teacher.new@gymflow.com",
+                                  "password": "123456",
+                                  "role": "TEACHER"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(10L))
+                .andExpect(jsonPath("$.organizationId").value(1L))
+                .andExpect(jsonPath("$.name").value("Professor Novo"))
+                .andExpect(jsonPath("$.email").value("teacher.new@gymflow.com"))
+                .andExpect(jsonPath("$.role").value("TEACHER"))
+                .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
+    void shouldAllowTeacherToCreateStudentUser() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+        when(userRepository.existsByEmail("student.new@gymflow.com")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User savedUser = invocation.getArgument(0);
+            savedUser.setId(11L);
+            return savedUser;
+        });
+
+        mockMvc.perform(post("/api/users")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "name": "Aluno Novo",
+                                  "email": "student.new@gymflow.com",
+                                  "password": "123456",
+                                  "role": "STUDENT"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(11L))
+                .andExpect(jsonPath("$.organizationId").value(1L))
+                .andExpect(jsonPath("$.name").value("Aluno Novo"))
+                .andExpect(jsonPath("$.email").value("student.new@gymflow.com"))
+                .andExpect(jsonPath("$.role").value("STUDENT"))
+                .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
+    void shouldBlockTeacherFromCreatingTeacherUser() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+
+        mockMvc.perform(post("/api/users")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "name": "Professor Indevido",
+                                  "email": "teacher.invalid@gymflow.com",
+                                  "password": "123456",
+                                  "role": "TEACHER"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Access denied"))
+                .andExpect(jsonPath("$.path").value("/api/users"));
+    }
+
+    @Test
+    void shouldBlockTeacherFromCreatingAdminUser() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+
+        mockMvc.perform(post("/api/users")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "name": "Admin Indevido",
+                                  "email": "admin.invalid@gymflow.com",
+                                  "password": "123456",
+                                  "role": "ADMIN"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Access denied"))
+                .andExpect(jsonPath("$.path").value("/api/users"));
+    }
+
+    @Test
+    void shouldBlockUnauthenticatedUserFromCreatingUser() throws Exception {
+        mockMvc.perform(post("/api/users")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "name": "Aluno Teste",
+                                  "email": "student.test@gymflow.com",
+                                  "password": "123456",
+                                  "role": "STUDENT"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
+                .andExpect(jsonPath("$.message").value("Authentication is required"))
+                .andExpect(jsonPath("$.path").value("/api/users"));
+    }
+
+    @Test
+    void shouldAllowTeacherToPatchStudentUserWithoutChangingActive() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        User student = createUser(3L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+        when(userRepository.findById(student.getId())).thenReturn(Optional.of(student));
+        when(userRepository.existsByEmailAndIdNot("student.updated@gymflow.com", student.getId())).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(patch("/api/users/{id}", student.getId())
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "name": "Aluno Atualizado",
+                                  "email": "student.updated@gymflow.com"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(student.getId()))
+                .andExpect(jsonPath("$.name").value("Aluno Atualizado"))
+                .andExpect(jsonPath("$.email").value("student.updated@gymflow.com"))
+                .andExpect(jsonPath("$.role").value("STUDENT"));
+    }
+
+    @Test
+    void shouldBlockTeacherFromPatchingStudentActiveStatus() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        User student = createUser(3L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+        when(userRepository.findById(student.getId())).thenReturn(Optional.of(student));
+
+        mockMvc.perform(patch("/api/users/{id}", student.getId())
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "active": false
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Access denied"))
+                .andExpect(jsonPath("$.path").value("/api/users/" + student.getId()));
+    }
+
+    @Test
+    void shouldBlockTeacherFromPatchingTeacherUser() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        User anotherTeacher = createUser(4L, "another.teacher@gymflow.com", UserRole.TEACHER);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+        when(userRepository.findById(anotherTeacher.getId())).thenReturn(Optional.of(anotherTeacher));
+
+        mockMvc.perform(patch("/api/users/{id}", anotherTeacher.getId())
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "name": "Professor Atualizado"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Access denied"))
+                .andExpect(jsonPath("$.path").value("/api/users/" + anotherTeacher.getId()));
+    }
+
+    @Test
+    void shouldAllowTeacherToFindUsersByRoleStudent() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        User student = createUser(3L, "student.dev@gymflow.com", UserRole.STUDENT);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(teacher.getOrganization()));
+        when(userRepository.findByOrganizationIdAndRole(1L, UserRole.STUDENT)).thenReturn(List.of(student));
+
+        mockMvc.perform(get("/api/users/by-organization/{organizationId}/by-role", 1L)
+                        .param("role", "STUDENT")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(student.getId()))
+                .andExpect(jsonPath("$[0].role").value("STUDENT"));
+    }
+
+    @Test
+    void shouldBlockTeacherFromFindingUsersByRoleTeacher() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(teacher.getOrganization()));
+
+        mockMvc.perform(get("/api/users/by-organization/{organizationId}/by-role", 1L)
+                        .param("role", "TEACHER")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Access denied"))
+                .andExpect(jsonPath("$.path").value("/api/users/by-organization/1/by-role"));
+    }
+
+    @Test
+    void shouldBlockTeacherFromFindingUsersByRoleAdmin() throws Exception {
+        User teacher = createUser(2L, "teacher.dev@gymflow.com", UserRole.TEACHER);
+        String token = jwtService.generateToken(teacher);
+
+        when(userRepository.findByEmail(teacher.getEmail())).thenReturn(Optional.of(teacher));
+        when(organizationRepository.findById(1L)).thenReturn(Optional.of(teacher.getOrganization()));
+
+        mockMvc.perform(get("/api/users/by-organization/{organizationId}/by-role", 1L)
+                        .param("role", "ADMIN")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Access denied"))
+                .andExpect(jsonPath("$.path").value("/api/users/by-organization/1/by-role"));
     }
 
     private User createUser(Long id, String email, UserRole role) {
