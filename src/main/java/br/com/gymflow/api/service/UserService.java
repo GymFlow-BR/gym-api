@@ -34,10 +34,9 @@ public class UserService {
     public UserResponse create(CreateUserRequest request) {
         User authenticatedUser = getAuthenticatedUser();
 
-        validateSameOrganization(request.organizationId());
         validateCreatePermission(authenticatedUser, request);
 
-        Organization organization = getOrganizationById(request.organizationId());
+        Organization organization = authenticatedUser.getOrganization();
 
         if (userRepository.existsByEmail(request.email())) {
             throw new BusinessRuleException("Email already in use");

@@ -6,7 +6,6 @@ import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.dto.user.CreateUserRequest;
 import br.com.gymflow.api.dto.user.UserResponse;
 import br.com.gymflow.api.exception.BusinessRuleException;
-import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.UserMapper;
 import br.com.gymflow.api.repository.OrganizationRepository;
 import br.com.gymflow.api.repository.UserRepository;
@@ -57,10 +56,7 @@ class UserServiceTest {
         User admin = createUser(1L, UserRole.ADMIN, 1L);
         authenticate(admin);
 
-        Organization organization = createOrganization(1L);
-
         CreateUserRequest request = new CreateUserRequest(
-                1L,
                 "Aluno Teste",
                 "student.test@gymflow.com",
                 "123456",
@@ -81,7 +77,6 @@ class UserServiceTest {
                 null
         );
 
-        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
         when(userRepository.existsByEmail(request.email())).thenReturn(false);
         when(userMapper.toEntity(request)).thenReturn(userToSave);
         when(passwordEncoder.encode(request.password())).thenReturn("encoded-password");
@@ -96,46 +91,26 @@ class UserServiceTest {
         assertEquals("student.test@gymflow.com", response.email());
         assertEquals(UserRole.STUDENT, response.role());
 
-        verify(organizationRepository).findById(1L);
+        assertEquals(admin.getOrganization(), userToSave.getOrganization());
+        assertEquals("encoded-password", userToSave.getPasswordHash());
+
         verify(userRepository).existsByEmail(request.email());
         verify(userMapper).toEntity(request);
         verify(passwordEncoder).encode(request.password());
         verify(userRepository).save(userToSave);
         verify(userMapper).toResponse(savedUser);
-    }
-
-    @Test
-    void shouldThrowAccessDeniedExceptionWhenAdminCreatesUserInAnotherOrganization() {
-        User admin = createUser(1L, UserRole.ADMIN, 1L);
-        authenticate(admin);
-
-        CreateUserRequest request = new CreateUserRequest(
-                2L,
-                "Aluno Outra Org",
-                "student.other@gymflow.com",
-                "123456",
-                UserRole.STUDENT
-        );
-
-        assertThrows(AccessDeniedException.class, () ->
-                userService.create(request)
-        );
-
         verifyNoInteractions(organizationRepository);
-        verifyNoInteractions(userRepository);
-        verifyNoInteractions(userMapper);
-        verifyNoInteractions(passwordEncoder);
     }
+
+
+
 
     @Test
     void shouldCreateStudentWhenTeacherCreatesStudentInOwnOrganization() {
         User teacher = createUser(1L, UserRole.TEACHER, 1L);
         authenticate(teacher);
 
-        Organization organization = createOrganization(1L);
-
         CreateUserRequest request = new CreateUserRequest(
-                1L,
                 "Aluno Criado pelo Professor",
                 "student.teacher.created@gymflow.com",
                 "123456",
@@ -156,8 +131,6 @@ class UserServiceTest {
                 null
         );
 
-
-        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
         when(userRepository.existsByEmail(request.email())).thenReturn(false);
         when(userMapper.toEntity(request)).thenReturn(userToSave);
         when(passwordEncoder.encode(request.password())).thenReturn("encoded-password");
@@ -172,12 +145,15 @@ class UserServiceTest {
         assertEquals("student.teacher.created@gymflow.com", response.email());
         assertEquals(UserRole.STUDENT, response.role());
 
-        verify(organizationRepository).findById(1L);
+        assertEquals(teacher.getOrganization(), userToSave.getOrganization());
+        assertEquals("encoded-password", userToSave.getPasswordHash());
+
         verify(userRepository).existsByEmail(request.email());
         verify(userMapper).toEntity(request);
         verify(passwordEncoder).encode(request.password());
         verify(userRepository).save(userToSave);
         verify(userMapper).toResponse(savedUser);
+        verifyNoInteractions(organizationRepository);
     }
 
     @Test
@@ -186,7 +162,6 @@ class UserServiceTest {
         authenticate(teacher);
 
         CreateUserRequest request = new CreateUserRequest(
-                1L,
                 "Admin Indevido",
                 "admin.invalid@gymflow.com",
                 "123456",
@@ -209,7 +184,6 @@ class UserServiceTest {
         authenticate(teacher);
 
         CreateUserRequest request = new CreateUserRequest(
-                1L,
                 "Professor Indevido",
                 "teacher.invalid@gymflow.com",
                 "123456",
@@ -226,45 +200,20 @@ class UserServiceTest {
         verifyNoInteractions(passwordEncoder);
     }
 
-    @Test
-    void shouldThrowAccessDeniedExceptionWhenTeacherCreatesStudentInAnotherOrganization() {
-        User teacher = createUser(1L, UserRole.TEACHER, 1L);
-        authenticate(teacher);
 
-        CreateUserRequest request = new CreateUserRequest(
-                2L,
-                "Aluno Outra Org",
-                "student.other.org@gymflow.com",
-                "123456",
-                UserRole.STUDENT
-        );
-
-        assertThrows(AccessDeniedException.class, () ->
-                userService.create(request)
-        );
-
-        verifyNoInteractions(organizationRepository);
-        verifyNoInteractions(userRepository);
-        verifyNoInteractions(userMapper);
-        verifyNoInteractions(passwordEncoder);
-    }
 
     @Test
     void shouldThrowBusinessRuleExceptionWhenEmailAlreadyExistsOnCreate() {
         User admin = createUser(1L, UserRole.ADMIN, 1L);
         authenticate(admin);
 
-        Organization organization = createOrganization(1L);
-
         CreateUserRequest request = new CreateUserRequest(
-                1L,
                 "Aluno Teste",
                 "student.test@gymflow.com",
                 "123456",
                 UserRole.STUDENT
         );
 
-        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
         when(userRepository.existsByEmail(request.email())).thenReturn(true);
 
         BusinessRuleException exception = assertThrows(BusinessRuleException.class, () ->
@@ -273,38 +222,12 @@ class UserServiceTest {
 
         assertEquals("Email already in use", exception.getMessage());
 
-        verify(organizationRepository).findById(1L);
         verify(userRepository).existsByEmail(request.email());
+        verifyNoInteractions(organizationRepository);
         verifyNoInteractions(userMapper);
         verifyNoInteractions(passwordEncoder);
     }
 
-    @Test
-    void shouldThrowResourceNotFoundExceptionWhenOrganizationDoesNotExistOnCreate() {
-        User admin = createUser(1L, UserRole.ADMIN, 1L);
-        authenticate(admin);
-
-        CreateUserRequest request = new CreateUserRequest(
-                1L,
-                "Aluno Teste",
-                "student.test@gymflow.com",
-                "123456",
-                UserRole.STUDENT
-        );
-
-        when(organizationRepository.findById(1L)).thenReturn(Optional.empty());
-
-        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () ->
-                userService.create(request)
-        );
-
-        assertEquals("Organization not found with id: 1", exception.getMessage());
-
-        verify(organizationRepository).findById(1L);
-        verifyNoInteractions(userRepository);
-        verifyNoInteractions(userMapper);
-        verifyNoInteractions(passwordEncoder);
-    }
 
     @Test
     void shouldFindAllUsersFromAuthenticatedUserOrganization() {

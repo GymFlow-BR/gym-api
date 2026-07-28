@@ -32,9 +32,8 @@ public class ExerciseService {
 
     @Transactional
     public ExerciseResponse create(CreateExerciseRequest request) {
-        validateSameOrganization(request.organizationId());
-
-        Organization organization = getOrganizationById(request.organizationId());
+        User authenticatedUser = getAuthenticatedUser();
+        Organization organization = authenticatedUser.getOrganization();
 
         Exercise exercise = exerciseMapper.toEntity(request);
         exercise.setOrganization(organization);

@@ -248,7 +248,6 @@ class WorkoutControllerTest {
 
     private CreateWorkoutRequest createWorkoutRequest() {
         return new CreateWorkoutRequest(
-                1L,
                 "Treino A"
         );
     }

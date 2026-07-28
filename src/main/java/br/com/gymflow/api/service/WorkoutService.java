@@ -11,7 +11,6 @@ import br.com.gymflow.api.exception.BusinessRuleException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.WorkoutMapper;
 import br.com.gymflow.api.repository.OrganizationRepository;
-import br.com.gymflow.api.repository.UserRepository;
 import br.com.gymflow.api.repository.WorkoutRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,19 +29,17 @@ public class WorkoutService {
 
     private final WorkoutRepository workoutRepository;
     private final WorkoutMapper workoutMapper;
-    private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
 
 
     @Transactional
     public WorkoutResponse create(CreateWorkoutRequest request) {
-        User teacher = getUserById(request.teacherId());
+        User authenticatedUser = getAuthenticatedUser();
 
-        validateSameOrganization(teacher.getOrganization().getId());
-        validateUserCanCreateWorkout(teacher);
+        validateUserCanCreateWorkout(authenticatedUser);
 
         Workout workout = workoutMapper.toEntity(request);
-        workout.setTeacher(teacher);
+        workout.setTeacher(authenticatedUser);
         workout.setStatus(WorkoutStatus.ACTIVE);
 
         Workout savedWorkout = workoutRepository.save(workout);
@@ -116,11 +113,6 @@ public class WorkoutService {
     private Workout getWorkoutById(Long id) {
         return workoutRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout not found with id: " + id));
-    }
-
-    private User getUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with id: " + userId));
     }
 
     private void validateUserCanCreateWorkout(User user) {

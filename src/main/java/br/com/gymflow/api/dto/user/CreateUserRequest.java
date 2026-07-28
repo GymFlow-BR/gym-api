@@ -8,9 +8,6 @@ import jakarta.validation.constraints.Size;
 
 public record CreateUserRequest(
 
-        @NotNull(message = "O id da organização é obrigatório")
-        Long organizationId,
-
         @NotBlank(message = "O nome é obrigatório")
         @Size(max = 150, message = "O nome deve ter no maximo 150 caracteres")
         String name,

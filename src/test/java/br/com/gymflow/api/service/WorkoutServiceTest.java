@@ -13,7 +13,6 @@ import br.com.gymflow.api.exception.BusinessRuleException;
 import br.com.gymflow.api.exception.ResourceNotFoundException;
 import br.com.gymflow.api.mapper.WorkoutMapper;
 import br.com.gymflow.api.repository.OrganizationRepository;
-import br.com.gymflow.api.repository.UserRepository;
 import br.com.gymflow.api.repository.WorkoutRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -21,10 +20,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -42,9 +41,6 @@ class WorkoutServiceTest {
     private WorkoutMapper workoutMapper;
 
     @Mock
-    private UserRepository userRepository;
-
-    @Mock
     private OrganizationRepository organizationRepository;
 
     @InjectMocks
@@ -55,17 +51,12 @@ class WorkoutServiceTest {
         SecurityContextHolder.clearContext();
     }
 
-
     @Test
     void shouldCreateWorkoutSuccessfully() {
-        // Arrange
         Long teacherId = 1L;
         Long workoutId = 10L;
 
-        CreateWorkoutRequest request = createWorkoutRequest(
-                teacherId,
-                "Treino A"
-        );
+        CreateWorkoutRequest request = createWorkoutRequest("Treino A");
 
         Organization organization = createOrganization(100L);
         User teacher = createTeacher(teacherId, organization);
@@ -92,22 +83,12 @@ class WorkoutServiceTest {
                 WorkoutStatus.ACTIVE
         );
 
-        when(userRepository.findById(teacherId))
-                .thenReturn(Optional.of(teacher));
+        when(workoutMapper.toEntity(request)).thenReturn(workoutToSave);
+        when(workoutRepository.save(workoutToSave)).thenReturn(savedWorkout);
+        when(workoutMapper.toResponse(savedWorkout)).thenReturn(expectedResponse);
 
-        when(workoutMapper.toEntity(request))
-                .thenReturn(workoutToSave);
-
-        when(workoutRepository.save(workoutToSave))
-                .thenReturn(savedWorkout);
-
-        when(workoutMapper.toResponse(savedWorkout))
-                .thenReturn(expectedResponse);
-
-        // Act
         WorkoutResponse response = workoutService.create(request);
 
-        // Assert
         assertNotNull(response);
         assertEquals(workoutId, response.workoutId());
         assertEquals(teacherId, response.teacherId());
@@ -117,7 +98,6 @@ class WorkoutServiceTest {
         assertEquals(teacher, workoutToSave.getTeacher());
         assertEquals(WorkoutStatus.ACTIVE, workoutToSave.getStatus());
 
-        verify(userRepository).findById(teacherId);
         verify(workoutMapper).toEntity(request);
         verify(workoutRepository).save(workoutToSave);
         verify(workoutMapper).toResponse(savedWorkout);
@@ -125,14 +105,10 @@ class WorkoutServiceTest {
 
     @Test
     void shouldCreateWorkoutSuccessfullyWhenUserIsAdmin() {
-        // Arrange
         Long adminId = 1L;
         Long workoutId = 10L;
 
-        CreateWorkoutRequest request = createWorkoutRequest(
-                adminId,
-                "Treino A"
-        );
+        CreateWorkoutRequest request = createWorkoutRequest("Treino A");
 
         Organization organization = createOrganization(100L);
         User admin = createTeacher(adminId, organization);
@@ -160,22 +136,12 @@ class WorkoutServiceTest {
                 WorkoutStatus.ACTIVE
         );
 
-        when(userRepository.findById(adminId))
-                .thenReturn(Optional.of(admin));
+        when(workoutMapper.toEntity(request)).thenReturn(workoutToSave);
+        when(workoutRepository.save(workoutToSave)).thenReturn(savedWorkout);
+        when(workoutMapper.toResponse(savedWorkout)).thenReturn(expectedResponse);
 
-        when(workoutMapper.toEntity(request))
-                .thenReturn(workoutToSave);
-
-        when(workoutRepository.save(workoutToSave))
-                .thenReturn(savedWorkout);
-
-        when(workoutMapper.toResponse(savedWorkout))
-                .thenReturn(expectedResponse);
-
-        // Act
         WorkoutResponse response = workoutService.create(request);
 
-        // Assert
         assertNotNull(response);
         assertEquals(workoutId, response.workoutId());
         assertEquals(adminId, response.teacherId());
@@ -185,7 +151,6 @@ class WorkoutServiceTest {
         assertEquals(admin, workoutToSave.getTeacher());
         assertEquals(WorkoutStatus.ACTIVE, workoutToSave.getStatus());
 
-        verify(userRepository).findById(adminId);
         verify(workoutMapper).toEntity(request);
         verify(workoutRepository).save(workoutToSave);
         verify(workoutMapper).toResponse(savedWorkout);
@@ -193,26 +158,15 @@ class WorkoutServiceTest {
 
     @Test
     void shouldThrowBusinessRuleExceptionWhenUserIsStudentOnCreate() {
-        // Arrange
         Long studentId = 1L;
 
-        CreateWorkoutRequest request = createWorkoutRequest(
-                studentId,
-                "Treino A"
-        );
+        CreateWorkoutRequest request = createWorkoutRequest("Treino A");
 
         Organization organization = createOrganization(100L);
-
-        User authenticatedTeacher = createTeacher(99L, organization);
-        authenticate(authenticatedTeacher);
-
         User student = createTeacher(studentId, organization);
         student.setRole(UserRole.STUDENT);
+        authenticate(student);
 
-        when(userRepository.findById(studentId))
-                .thenReturn(Optional.of(student));
-
-        // Act + Assert
         BusinessRuleException exception = assertThrows(
                 BusinessRuleException.class,
                 () -> workoutService.create(request)
@@ -222,40 +176,6 @@ class WorkoutServiceTest {
                 "User is not allowed to create workouts with id: " + studentId,
                 exception.getMessage()
         );
-
-        verify(userRepository).findById(studentId);
-
-        verifyNoInteractions(
-                workoutRepository,
-                workoutMapper
-        );
-    }
-
-    @Test
-    void shouldThrowResourceNotFoundExceptionWhenTeacherDoesNotExistOnCreate() {
-        // Arrange
-        Long teacherId = 1L;
-
-        CreateWorkoutRequest request = createWorkoutRequest(
-                teacherId,
-                "Treino A"
-        );
-
-        when(userRepository.findById(teacherId))
-                .thenReturn(Optional.empty());
-
-        // Act + Assert
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> workoutService.create(request)
-        );
-
-        assertEquals(
-                "Teacher not found with id: " + teacherId,
-                exception.getMessage()
-        );
-
-        verify(userRepository).findById(teacherId);
 
         verifyNoInteractions(
                 workoutRepository,
@@ -313,13 +233,10 @@ class WorkoutServiceTest {
 
         verify(workoutMapper).toResponse(workoutA);
         verify(workoutMapper, never()).toResponse(workoutB);
-
-        verifyNoInteractions(userRepository);
     }
 
     @Test
     void shouldFindWorkoutByIdSuccessfully() {
-        // Arrange
         Long workoutId = 10L;
         Long teacherId = 1L;
 
@@ -347,10 +264,8 @@ class WorkoutServiceTest {
         when(workoutMapper.toResponse(workout))
                 .thenReturn(expectedResponse);
 
-        // Act
         WorkoutResponse response = workoutService.findById(workoutId);
 
-        // Assert
         assertNotNull(response);
         assertEquals(workoutId, response.workoutId());
         assertEquals(teacherId, response.teacherId());
@@ -359,19 +274,15 @@ class WorkoutServiceTest {
 
         verify(workoutRepository).findById(workoutId);
         verify(workoutMapper).toResponse(workout);
-
-        verifyNoInteractions(userRepository);
     }
 
     @Test
     void shouldThrowResourceNotFoundExceptionWhenWorkoutDoesNotExistOnFindById() {
-        // Arrange
         Long workoutId = 10L;
 
         when(workoutRepository.findById(workoutId))
                 .thenReturn(Optional.empty());
 
-        // Act + Assert
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> workoutService.findById(workoutId)
@@ -383,16 +294,11 @@ class WorkoutServiceTest {
         );
 
         verify(workoutRepository).findById(workoutId);
-
-        verifyNoInteractions(
-                userRepository,
-                workoutMapper
-        );
+        verifyNoInteractions(workoutMapper);
     }
 
     @Test
     void shouldPatchWorkoutSuccessfully() {
-        // Arrange
         Long workoutId = 10L;
         Long teacherId = 1L;
 
@@ -435,10 +341,8 @@ class WorkoutServiceTest {
         when(workoutMapper.toResponse(updatedWorkout))
                 .thenReturn(expectedResponse);
 
-        // Act
         WorkoutResponse response = workoutService.patch(workoutId, request);
 
-        // Assert
         assertNotNull(response);
         assertEquals(workoutId, response.workoutId());
         assertEquals(teacherId, response.teacherId());
@@ -451,13 +355,10 @@ class WorkoutServiceTest {
         verify(workoutRepository).findById(workoutId);
         verify(workoutRepository).save(workout);
         verify(workoutMapper).toResponse(updatedWorkout);
-
-        verifyNoInteractions(userRepository);
     }
 
     @Test
     void shouldThrowResourceNotFoundExceptionWhenWorkoutDoesNotExistOnPatch() {
-        // Arrange
         Long workoutId = 10L;
 
         UpdateWorkoutRequest request = createUpdateWorkoutRequest(
@@ -468,7 +369,6 @@ class WorkoutServiceTest {
         when(workoutRepository.findById(workoutId))
                 .thenReturn(Optional.empty());
 
-        // Act + Assert
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> workoutService.patch(workoutId, request)
@@ -480,19 +380,12 @@ class WorkoutServiceTest {
         );
 
         verify(workoutRepository).findById(workoutId);
-
-        verifyNoInteractions(
-                userRepository,
-                workoutMapper
-        );
-
-        verify(workoutRepository, never())
-                .save(any(Workout.class));
+        verifyNoInteractions(workoutMapper);
+        verify(workoutRepository, never()).save(any(Workout.class));
     }
 
     @Test
     void shouldDeleteWorkoutSuccessfully() {
-        // Arrange
         Long workoutId = 10L;
         Long teacherId = 1L;
 
@@ -510,30 +403,22 @@ class WorkoutServiceTest {
         when(workoutRepository.findById(workoutId))
                 .thenReturn(Optional.of(workout));
 
-        // Act
         workoutService.delete(workoutId);
 
-        // Assert
         assertEquals(WorkoutStatus.INACTIVE, workout.getStatus());
 
         verify(workoutRepository).findById(workoutId);
         verify(workoutRepository).save(workout);
-
-        verifyNoInteractions(
-                userRepository,
-                workoutMapper
-        );
+        verifyNoInteractions(workoutMapper);
     }
 
     @Test
     void shouldThrowResourceNotFoundExceptionWhenWorkoutDoesNotExistOnDelete() {
-        // Arrange
         Long workoutId = 10L;
 
         when(workoutRepository.findById(workoutId))
                 .thenReturn(Optional.empty());
 
-        // Act + Assert
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> workoutService.delete(workoutId)
@@ -545,19 +430,12 @@ class WorkoutServiceTest {
         );
 
         verify(workoutRepository).findById(workoutId);
-
-        verifyNoInteractions(
-                userRepository,
-                workoutMapper
-        );
-
-        verify(workoutRepository, never())
-                .save(any(Workout.class));
+        verifyNoInteractions(workoutMapper);
+        verify(workoutRepository, never()).save(any(Workout.class));
     }
 
     @Test
     void shouldPatchOnlyWorkoutNameWhenStatusIsNull() {
-        // Arrange
         Long workoutId = 10L;
         Long teacherId = 1L;
 
@@ -600,10 +478,8 @@ class WorkoutServiceTest {
         when(workoutMapper.toResponse(updatedWorkout))
                 .thenReturn(expectedResponse);
 
-        // Act
         WorkoutResponse response = workoutService.patch(workoutId, request);
 
-        // Assert
         assertNotNull(response);
         assertEquals(workoutId, response.workoutId());
         assertEquals(teacherId, response.teacherId());
@@ -616,13 +492,10 @@ class WorkoutServiceTest {
         verify(workoutRepository).findById(workoutId);
         verify(workoutRepository).save(workout);
         verify(workoutMapper).toResponse(updatedWorkout);
-
-        verifyNoInteractions(userRepository);
     }
 
     @Test
     void shouldPatchOnlyWorkoutStatusWhenWorkoutNameIsNull() {
-        // Arrange
         Long workoutId = 10L;
         Long teacherId = 1L;
 
@@ -665,10 +538,8 @@ class WorkoutServiceTest {
         when(workoutMapper.toResponse(updatedWorkout))
                 .thenReturn(expectedResponse);
 
-        // Act
         WorkoutResponse response = workoutService.patch(workoutId, request);
 
-        // Assert
         assertNotNull(response);
         assertEquals(workoutId, response.workoutId());
         assertEquals(teacherId, response.teacherId());
@@ -681,13 +552,10 @@ class WorkoutServiceTest {
         verify(workoutRepository).findById(workoutId);
         verify(workoutRepository).save(workout);
         verify(workoutMapper).toResponse(updatedWorkout);
-
-        verifyNoInteractions(userRepository);
     }
 
     @Test
     void shouldFindAllWorkoutsByOrganizationIdSuccessfully() {
-        // Arrange
         Long organizationId = 100L;
 
         Organization organization = createOrganization(organizationId);
@@ -735,10 +603,8 @@ class WorkoutServiceTest {
         when(workoutMapper.toResponse(workoutB))
                 .thenReturn(responseB);
 
-        // Act
         List<WorkoutResponse> response = workoutService.findAllByOrganizationId(organizationId);
 
-        // Assert
         assertNotNull(response);
         assertEquals(2, response.size());
 
@@ -756,7 +622,6 @@ class WorkoutServiceTest {
 
     @Test
     void shouldThrowResourceNotFoundExceptionWhenOrganizationDoesNotExistOnFindAllByOrganizationId() {
-        // Arrange
         Long organizationId = 100L;
 
         Organization organization = createOrganization(organizationId);
@@ -767,7 +632,6 @@ class WorkoutServiceTest {
         when(organizationRepository.findById(organizationId))
                 .thenReturn(Optional.empty());
 
-        // Act + Assert
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
                 () -> workoutService.findAllByOrganizationId(organizationId)
@@ -787,34 +651,6 @@ class WorkoutServiceTest {
                 .findByTeacherOrganizationIdAndStatus(anyLong(), any());
 
         verifyNoInteractions(workoutMapper);
-    }
-
-    @Test
-    void shouldThrowAccessDeniedExceptionWhenCreateWorkoutWithTeacherFromAnotherOrganization() {
-        Long teacherId = 1L;
-
-        Organization authenticatedOrganization = createOrganization(100L);
-        User authenticatedTeacher = createTeacher(99L, authenticatedOrganization);
-        authenticate(authenticatedTeacher);
-
-        Organization anotherOrganization = createOrganization(200L);
-        User teacherFromAnotherOrganization = createTeacher(teacherId, anotherOrganization);
-
-        CreateWorkoutRequest request = createWorkoutRequest(
-                teacherId,
-                "Treino Indevido"
-        );
-
-        when(userRepository.findById(teacherId))
-                .thenReturn(Optional.of(teacherFromAnotherOrganization));
-
-        assertThrows(AccessDeniedException.class, () ->
-                workoutService.create(request)
-        );
-
-        verify(userRepository).findById(teacherId);
-        verifyNoInteractions(workoutMapper);
-        verify(workoutRepository, never()).save(any());
     }
 
     @Test
@@ -926,36 +762,6 @@ class WorkoutServiceTest {
         verifyNoInteractions(workoutMapper);
     }
 
-    @Test
-    void shouldThrowAccessDeniedExceptionWhenCreateWorkoutWithStudentFromAnotherOrganization() {
-        Long studentId = 1L;
-
-        Organization authenticatedOrganization = createOrganization(100L);
-        User authenticatedTeacher = createTeacher(99L, authenticatedOrganization);
-        authenticate(authenticatedTeacher);
-
-        Organization anotherOrganization = createOrganization(200L);
-        User studentFromAnotherOrganization = createTeacher(studentId, anotherOrganization);
-        studentFromAnotherOrganization.setRole(UserRole.STUDENT);
-
-        CreateWorkoutRequest request = createWorkoutRequest(
-                studentId,
-                "Treino Indevido"
-        );
-
-        when(userRepository.findById(studentId))
-                .thenReturn(Optional.of(studentFromAnotherOrganization));
-
-        assertThrows(AccessDeniedException.class, () ->
-                workoutService.create(request)
-        );
-
-        verify(userRepository).findById(studentId);
-        verifyNoInteractions(workoutMapper);
-        verify(workoutRepository, never()).save(any());
-    }
-
-
     private Organization createOrganization(Long id) {
         Organization organization = new Organization();
         organization.setId(id);
@@ -986,11 +792,8 @@ class WorkoutServiceTest {
         return workout;
     }
 
-    private CreateWorkoutRequest createWorkoutRequest(Long teacherId, String workoutName) {
-        return new CreateWorkoutRequest(
-                teacherId,
-                workoutName
-        );
+    private CreateWorkoutRequest createWorkoutRequest(String workoutName) {
+        return new CreateWorkoutRequest(workoutName);
     }
 
     private UpdateWorkoutRequest createUpdateWorkoutRequest(String workoutName, WorkoutStatus status) {
