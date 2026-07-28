@@ -3,6 +3,7 @@ package br.com.gymflow.api.service;
 import br.com.gymflow.api.domain.Exercise;
 import br.com.gymflow.api.domain.Organization;
 import br.com.gymflow.api.domain.enums.ExerciseMediaType;
+import br.com.gymflow.api.domain.enums.UserRole;
 import br.com.gymflow.api.dto.exercise.CreateExerciseRequest;
 import br.com.gymflow.api.dto.exercise.ExerciseResponse;
 import br.com.gymflow.api.dto.exercise.UpdateExerciseRequest;
@@ -32,9 +33,11 @@ public class ExerciseService {
 
     @Transactional
     public ExerciseResponse create(CreateExerciseRequest request) {
-        validateSameOrganization(request.organizationId());
+        User authenticatedUser = getAuthenticatedUser();
 
-        Organization organization = getOrganizationById(request.organizationId());
+        validateUserCanManageExercises(authenticatedUser);
+
+        Organization organization = authenticatedUser.getOrganization();
 
         Exercise exercise = exerciseMapper.toEntity(request);
         exercise.setOrganization(organization);
@@ -77,6 +80,10 @@ public class ExerciseService {
 
     @Transactional
     public ExerciseResponse update(Long id, UpdateExerciseRequest request) {
+        User authenticatedUser = getAuthenticatedUser();
+
+        validateUserCanManageExercises(authenticatedUser);
+
         Exercise exercise = getExerciseById(id);
 
         validateExerciseBelongsToAuthenticatedOrganization(exercise);
@@ -90,6 +97,10 @@ public class ExerciseService {
 
     @Transactional
     public void delete(Long id) {
+        User authenticatedUser = getAuthenticatedUser();
+
+        validateUserCanManageExercises(authenticatedUser);
+
         Exercise exercise = getExerciseById(id);
 
         validateExerciseBelongsToAuthenticatedOrganization(exercise);
@@ -101,6 +112,10 @@ public class ExerciseService {
 
     @Transactional
     public ExerciseResponse uploadExerciseImage(Long exerciseId, MultipartFile file) {
+        User authenticatedUser = getAuthenticatedUser();
+
+        validateUserCanManageExercises(authenticatedUser);
+
         Exercise exercise = getExerciseById(exerciseId);
 
         validateExerciseBelongsToAuthenticatedOrganization(exercise);
@@ -119,6 +134,10 @@ public class ExerciseService {
 
     @Transactional
     public ExerciseResponse uploadExerciseVideo(Long exerciseId, MultipartFile file) {
+        User authenticatedUser = getAuthenticatedUser();
+
+        validateUserCanManageExercises(authenticatedUser);
+
         Exercise exercise = getExerciseById(exerciseId);
 
         validateExerciseBelongsToAuthenticatedOrganization(exercise);
@@ -173,4 +192,12 @@ public class ExerciseService {
     private void validateExerciseBelongsToAuthenticatedOrganization(Exercise exercise) {
         validateSameOrganization(exercise.getOrganization().getId());
     }
+
+    private void validateUserCanManageExercises(User user) {
+        if (user.getRole() != UserRole.ADMIN && user.getRole() != UserRole.TEACHER) {
+            throw new AccessDeniedException("Access denied");
+        }
+    }
+
+
 }

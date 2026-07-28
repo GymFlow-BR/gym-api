@@ -58,10 +58,7 @@ class ExerciseServiceTest {
         User admin = createUser(1L, UserRole.ADMIN, 1L);
         authenticate(admin);
 
-        Organization organization = createOrganization(1L);
-
         CreateExerciseRequest request = new CreateExerciseRequest(
-                1L,
                 "Supino reto",
                 "Peito",
                 "Exercício para peitoral",
@@ -74,7 +71,6 @@ class ExerciseServiceTest {
         Exercise savedExercise = createExercise(1L, 1L);
         ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
 
-        when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
         when(exerciseMapper.toEntity(request)).thenReturn(exerciseToSave);
         when(exerciseRepository.save(exerciseToSave)).thenReturn(savedExercise);
         when(exerciseMapper.toResponse(savedExercise)).thenReturn(expectedResponse);
@@ -83,64 +79,14 @@ class ExerciseServiceTest {
 
         assertNotNull(response);
         assertSame(expectedResponse, response);
+        assertEquals(admin.getOrganization(), exerciseToSave.getOrganization());
 
-        verify(organizationRepository).findById(1L);
         verify(exerciseMapper).toEntity(request);
         verify(exerciseRepository).save(exerciseToSave);
         verify(exerciseMapper).toResponse(savedExercise);
-    }
-
-    @Test
-    void shouldThrowAccessDeniedExceptionWhenCreateExerciseInAnotherOrganization() {
-        User admin = createUser(1L, UserRole.ADMIN, 1L);
-        authenticate(admin);
-
-        CreateExerciseRequest request = new CreateExerciseRequest(
-                2L,
-                "Exercício Indevido",
-                "Peito",
-                "Não deve permitir",
-                "Barra",
-                null,
-                null
-        );
-
-        assertThrows(AccessDeniedException.class, () ->
-                exerciseService.create(request)
-        );
-
         verifyNoInteractions(organizationRepository);
-        verifyNoInteractions(exerciseRepository);
-        verifyNoInteractions(exerciseMapper);
     }
 
-    @Test
-    void shouldThrowResourceNotFoundExceptionWhenOrganizationDoesNotExistOnCreate() {
-        User admin = createUser(1L, UserRole.ADMIN, 1L);
-        authenticate(admin);
-
-        CreateExerciseRequest request = new CreateExerciseRequest(
-                1L,
-                "Supino reto",
-                "Peito",
-                "Exercício para peitoral",
-                "Barra",
-                null,
-                null
-        );
-
-        when(organizationRepository.findById(1L)).thenReturn(Optional.empty());
-
-        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () ->
-                exerciseService.create(request)
-        );
-
-        assertEquals("Organization not found with id: 1", exception.getMessage());
-
-        verify(organizationRepository).findById(1L);
-        verifyNoInteractions(exerciseRepository);
-        verifyNoInteractions(exerciseMapper);
-    }
 
     @Test
     void shouldFindAllExercisesSuccessfully() {
@@ -519,6 +465,112 @@ class ExerciseServiceTest {
                 );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenStudentCreatesExercise() {
+        User student = createUser(1L, UserRole.STUDENT, 1L);
+        authenticate(student);
+
+        CreateExerciseRequest request = new CreateExerciseRequest(
+                "Exercício Indevido",
+                "Peito",
+                "Aluno não deve criar exercício",
+                "Barra",
+                null,
+                null
+        );
+
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.create(request)
+        );
+
+        verifyNoInteractions(organizationRepository);
+        verifyNoInteractions(exerciseRepository);
+        verifyNoInteractions(exerciseMapper);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenStudentUpdatesExercise() {
+        User student = createUser(1L, UserRole.STUDENT, 1L);
+        authenticate(student);
+
+        UpdateExerciseRequest request = new UpdateExerciseRequest(
+                "Supino inclinado",
+                "Peito",
+                "Descrição atualizada",
+                "Halteres",
+                null,
+                null
+        );
+
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.update(1L, request)
+        );
+
+        verifyNoInteractions(organizationRepository);
+        verifyNoInteractions(exerciseRepository);
+        verifyNoInteractions(exerciseMapper);
+        verifyNoInteractions(cloudinaryStorageService);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenStudentDeletesExercise() {
+        User student = createUser(1L, UserRole.STUDENT, 1L);
+        authenticate(student);
+
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.delete(1L)
+        );
+
+        verifyNoInteractions(organizationRepository);
+        verifyNoInteractions(exerciseRepository);
+        verifyNoInteractions(exerciseMapper);
+        verifyNoInteractions(cloudinaryStorageService);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenStudentUploadsExerciseImage() {
+        User student = createUser(1L, UserRole.STUDENT, 1L);
+        authenticate(student);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "supino.png",
+                "image/png",
+                "image-content".getBytes()
+        );
+
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.uploadExerciseImage(1L, file)
+        );
+
+        verifyNoInteractions(organizationRepository);
+        verifyNoInteractions(exerciseRepository);
+        verifyNoInteractions(exerciseMapper);
+        verifyNoInteractions(cloudinaryStorageService);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenStudentUploadsExerciseVideo() {
+        User student = createUser(1L, UserRole.STUDENT, 1L);
+        authenticate(student);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "supino.mp4",
+                "video/mp4",
+                "video-content".getBytes()
+        );
+
+        assertThrows(AccessDeniedException.class, () ->
+                exerciseService.uploadExerciseVideo(1L, file)
+        );
+
+        verifyNoInteractions(organizationRepository);
+        verifyNoInteractions(exerciseRepository);
+        verifyNoInteractions(exerciseMapper);
+        verifyNoInteractions(cloudinaryStorageService);
     }
 
     private User createUser(Long id, UserRole role, Long organizationId) {
