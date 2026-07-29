@@ -561,6 +561,36 @@ class UserServiceTest {
     }
 
     @Test
+    void shouldThrowAccessDeniedExceptionWhenTeacherDeletesUser() {
+        User teacher = createUser(1L, UserRole.TEACHER, 1L);
+        authenticate(teacher);
+
+        assertThrows(AccessDeniedException.class, () ->
+                userService.delete(2L)
+        );
+
+        verifyNoInteractions(userRepository);
+        verifyNoInteractions(organizationRepository);
+        verifyNoInteractions(userMapper);
+        verifyNoInteractions(passwordEncoder);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenStudentDeletesUser() {
+        User student = createUser(1L, UserRole.STUDENT, 1L);
+        authenticate(student);
+
+        assertThrows(AccessDeniedException.class, () ->
+                userService.delete(2L)
+        );
+
+        verifyNoInteractions(userRepository);
+        verifyNoInteractions(organizationRepository);
+        verifyNoInteractions(userMapper);
+        verifyNoInteractions(passwordEncoder);
+    }
+
+    @Test
     void shouldThrowAccessDeniedExceptionWhenDeleteUserFromAnotherOrganization() {
         User admin = createUser(1L, UserRole.ADMIN, 1L);
         authenticate(admin);

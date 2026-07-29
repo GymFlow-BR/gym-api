@@ -117,6 +117,10 @@ public class UserService {
 
     @Transactional
     public void delete(Long id) {
+        User authenticatedUser = getAuthenticatedUser();
+
+        validateDeletePermission(authenticatedUser);
+
         User user = getUserById(id);
 
         validateUserBelongsToAuthenticatedOrganization(user);
@@ -202,5 +206,11 @@ public class UserService {
         }
 
         throw new AccessDeniedException("Access denied");
+    }
+
+    private void validateDeletePermission(User authenticatedUser) {
+        if (authenticatedUser.getRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("Access denied");
+        }
     }
 }
