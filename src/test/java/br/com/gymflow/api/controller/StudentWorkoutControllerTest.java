@@ -268,6 +268,73 @@ class StudentWorkoutControllerTest {
     }
 
     @Test
+    void shouldFindWorkoutDetailsSuccessfully() throws Exception {
+        Long studentId = 1L;
+        Long studentWorkoutId = 100L;
+
+        StudentCurrentWorkoutResponse response = createStudentCurrentWorkoutResponse(studentId);
+
+        when(studentWorkoutService.findWorkoutDetails(studentId, studentWorkoutId))
+                .thenReturn(response);
+
+        mockMvc.perform(get(
+                        "/api/students/{studentId}/workouts/{studentWorkoutId}/details",
+                        studentId,
+                        studentWorkoutId
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.studentId").value(studentId))
+                .andExpect(jsonPath("$.studentWorkoutId").value(100L))
+                .andExpect(jsonPath("$.workoutId").value(10L))
+                .andExpect(jsonPath("$.workoutName").value("Treino A"))
+                .andExpect(jsonPath("$.teacherName").value("Professor Teste"))
+                .andExpect(jsonPath("$.weekDay").value("MONDAY"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.exercises[0].workoutExerciseId").value(1000L))
+                .andExpect(jsonPath("$.exercises[0].exerciseId").value(20L))
+                .andExpect(jsonPath("$.exercises[0].exerciseName").value("Supino reto"))
+                .andExpect(jsonPath("$.exercises[0].equipmentName").value("Barra"))
+                .andExpect(jsonPath("$.exercises[0].muscleGroup").value("Peitoral"))
+                .andExpect(jsonPath("$.exercises[0].description").value("Exercício para peitoral"))
+                .andExpect(jsonPath("$.exercises[0].exerciseOrder").value(1))
+                .andExpect(jsonPath("$.exercises[0].sets").value(4))
+                .andExpect(jsonPath("$.exercises[0].reps").value("8-12"))
+                .andExpect(jsonPath("$.exercises[0].recommendedLoad").value(40.00))
+                .andExpect(jsonPath("$.exercises[0].restTimeSeconds").value(60))
+                .andExpect(jsonPath("$.exercises[0].notes").value("Manter controle do movimento."))
+                .andExpect(jsonPath("$.exercises[0].imageUrl").value("https://example.com/image.jpg"))
+                .andExpect(jsonPath("$.exercises[0].videoUrl").value("https://example.com/video.mp4"));
+
+        verify(studentWorkoutService).findWorkoutDetails(studentId, studentWorkoutId);
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenWorkoutDetailsDoesNotExist() throws Exception {
+        Long studentId = 1L;
+        Long studentWorkoutId = 100L;
+
+        when(studentWorkoutService.findWorkoutDetails(studentId, studentWorkoutId))
+                .thenThrow(new ResourceNotFoundException(
+                        "Student workout not found with id: " + studentWorkoutId
+                ));
+
+        mockMvc.perform(get(
+                        "/api/students/{studentId}/workouts/{studentWorkoutId}/details",
+                        studentId,
+                        studentWorkoutId
+                ))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("Student workout not found with id: " + studentWorkoutId))
+                .andExpect(jsonPath("$.path").value(
+                        "/api/students/" + studentId + "/workouts/" + studentWorkoutId + "/details"
+                ));
+
+        verify(studentWorkoutService).findWorkoutDetails(studentId, studentWorkoutId);
+    }
+
+    @Test
     void shouldReturnNotFoundWhenStudentWorkoutDoesNotExist() throws Exception {
         Long studentId = 1L;
         Long studentWorkoutId = 100L;

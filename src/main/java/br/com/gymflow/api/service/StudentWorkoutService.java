@@ -144,11 +144,25 @@ public class StudentWorkoutService {
                         "Active workout not found student id: " + studentId
                 ));
 
-        if (studentWorkout.getWorkout().getStatus() != WorkoutStatus.ACTIVE) {
-            throw new ResourceNotFoundException(
-                    "Active workout not found student id: " + studentId
-            );
-        }
+        validateStudentWorkoutIsActive(studentWorkout, studentId);
+
+        List<WorkoutExercise> workoutExercises = workoutExerciseRepository
+                .findAllByWorkoutIdOrderByExerciseOrderAsc(studentWorkout.getWorkout().getId());
+
+        return studentWorkoutMapper.toCurrentWorkoutResponse(studentWorkout, workoutExercises);
+    }
+
+    @Transactional(readOnly = true)
+    public StudentCurrentWorkoutResponse findWorkoutDetails(
+            Long studentId,
+            Long studentWorkoutId
+    ) {
+        studentAccessValidator.validateStudentAccess(studentId);
+
+        StudentWorkout studentWorkout = getStudentWorkoutById(studentWorkoutId);
+
+        validateStudentWorkoutBelongsToStudent(studentWorkout, studentId);
+        validateStudentWorkoutIsActive(studentWorkout, studentId);
 
         List<WorkoutExercise> workoutExercises = workoutExerciseRepository
                 .findAllByWorkoutIdOrderByExerciseOrderAsc(studentWorkout.getWorkout().getId());
@@ -297,5 +311,22 @@ public class StudentWorkoutService {
             case SATURDAY -> WeekDay.SATURDAY;
             case SUNDAY -> WeekDay.SUNDAY;
         };
+    }
+
+    private void validateStudentWorkoutIsActive(
+            StudentWorkout studentWorkout,
+            Long studentId
+    ) {
+        if (studentWorkout.getStatus() != WorkoutStatus.ACTIVE) {
+            throw new ResourceNotFoundException(
+                    "Active workout not found student id: " + studentId
+            );
+        }
+
+        if (studentWorkout.getWorkout().getStatus() != WorkoutStatus.ACTIVE) {
+            throw new ResourceNotFoundException(
+                    "Active workout not found student id: " + studentId
+            );
+        }
     }
 }

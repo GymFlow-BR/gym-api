@@ -89,6 +89,27 @@ public class StudentWorkoutController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Buscar detalhes completos de treino atribuído ao aluno",
+            description = "Retorna um treino específico atribuído ao aluno com exercícios detalhados."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Detalhes do treino encontrados"),
+            @ApiResponse(responseCode = "404", description = "Atribuição, aluno ou treino ativo não encontrado")
+    })
+    @GetMapping("/{studentWorkoutId}/details")
+    public ResponseEntity<StudentCurrentWorkoutResponse> findWorkoutDetails(
+            @PathVariable Long studentId,
+            @PathVariable Long studentWorkoutId
+    ) {
+        StudentCurrentWorkoutResponse response = studentWorkoutService.findWorkoutDetails(
+                studentId,
+                studentWorkoutId
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
 
     @Operation(
             summary = "Atualizar status da atribuição",

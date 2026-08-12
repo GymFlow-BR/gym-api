@@ -1145,6 +1145,164 @@ class StudentWorkoutServiceTest {
     }
 
     @Test
+    void shouldFindWorkoutDetailsSuccessfully() {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutId = 10L;
+        Long organizationId = 100L;
+
+        Organization organization = createOrganization(organizationId);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+
+        LocalDateTime assignedAt = LocalDateTime.now();
+
+        StudentWorkout studentWorkout = createStudentWorkout(
+                studentWorkoutId,
+                student,
+                workout,
+                WorkoutStatus.ACTIVE,
+                assignedAt,
+                WeekDay.WEDNESDAY
+        );
+
+        WorkoutExercise workoutExerciseA = createWorkoutExercise(100L, workout);
+        WorkoutExercise workoutExerciseB = createWorkoutExercise(200L, workout);
+
+        List<WorkoutExercise> workoutExercises = List.of(workoutExerciseA, workoutExerciseB);
+
+        StudentCurrentWorkoutResponse expectedResponse = new StudentCurrentWorkoutResponse(
+                studentId,
+                studentWorkoutId,
+                workoutId,
+                "Treino A",
+                "Professor Teste",
+                assignedAt,
+                WeekDay.WEDNESDAY,
+                WorkoutStatus.ACTIVE,
+                List.of()
+        );
+
+        when(studentWorkoutRepository.findById(studentWorkoutId))
+                .thenReturn(Optional.of(studentWorkout));
+        when(workoutExerciseRepository.findAllByWorkoutIdOrderByExerciseOrderAsc(workoutId))
+                .thenReturn(workoutExercises);
+        when(studentWorkoutMapper.toCurrentWorkoutResponse(studentWorkout, workoutExercises))
+                .thenReturn(expectedResponse);
+
+        StudentCurrentWorkoutResponse response = studentWorkoutService.findWorkoutDetails(
+                studentId,
+                studentWorkoutId
+        );
+
+        assertNotNull(response);
+        assertEquals(studentId, response.studentId());
+        assertEquals(studentWorkoutId, response.studentWorkoutId());
+        assertEquals(workoutId, response.workoutId());
+        assertEquals("Treino A", response.workoutName());
+        assertEquals("Professor Teste", response.teacherName());
+        assertEquals(WeekDay.WEDNESDAY, response.weekDay());
+        assertEquals(WorkoutStatus.ACTIVE, response.status());
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+        verify(workoutExerciseRepository).findAllByWorkoutIdOrderByExerciseOrderAsc(workoutId);
+        verify(studentWorkoutMapper).toCurrentWorkoutResponse(studentWorkout, workoutExercises);
+
+        verifyNoInteractions(
+                userRepository,
+                workoutRepository
+        );
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenWorkoutDetailsStudentWorkoutIsInactive() {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutId = 10L;
+        Long organizationId = 100L;
+
+        Organization organization = createOrganization(organizationId);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+
+        StudentWorkout studentWorkout = createStudentWorkout(
+                studentWorkoutId,
+                student,
+                workout,
+                WorkoutStatus.INACTIVE,
+                LocalDateTime.now(),
+                WeekDay.WEDNESDAY
+        );
+
+        when(studentWorkoutRepository.findById(studentWorkoutId))
+                .thenReturn(Optional.of(studentWorkout));
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> studentWorkoutService.findWorkoutDetails(studentId, studentWorkoutId)
+        );
+
+        assertEquals("Active workout not found student id: " + studentId, exception.getMessage());
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+
+        verifyNoInteractions(
+                userRepository,
+                workoutRepository,
+                workoutExerciseRepository,
+                studentWorkoutMapper
+        );
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenWorkoutDetailsWorkoutIsInactive() {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutId = 10L;
+        Long organizationId = 100L;
+
+        Organization organization = createOrganization(organizationId);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+        workout.setStatus(WorkoutStatus.INACTIVE);
+
+        StudentWorkout studentWorkout = createStudentWorkout(
+                studentWorkoutId,
+                student,
+                workout,
+                WorkoutStatus.ACTIVE,
+                LocalDateTime.now(),
+                WeekDay.WEDNESDAY
+        );
+
+        when(studentWorkoutRepository.findById(studentWorkoutId))
+                .thenReturn(Optional.of(studentWorkout));
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> studentWorkoutService.findWorkoutDetails(studentId, studentWorkoutId)
+        );
+
+        assertEquals("Active workout not found student id: " + studentId, exception.getMessage());
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+
+        verifyNoInteractions(
+                userRepository,
+                workoutRepository,
+                workoutExerciseRepository,
+                studentWorkoutMapper
+        );
+    }
+
+    @Test
     void shouldThrowResourceNotFoundExceptionWhenStudentDoesNotExistOnFindCurrentWorkout() {
         Long studentId = 1L;
 
