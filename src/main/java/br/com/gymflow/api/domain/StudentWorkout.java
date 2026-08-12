@@ -2,12 +2,12 @@ package br.com.gymflow.api.domain;
 
 import br.com.gymflow.api.domain.enums.WorkoutStatus;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import br.com.gymflow.api.domain.enums.WeekDay;
 
 import java.time.LocalDateTime;
 
@@ -33,6 +33,10 @@ public class StudentWorkout {
 
     @Column(name = "assigned_at", nullable = false)
     private LocalDateTime assignedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "week_day", nullable = false, length = 20)
+    private WeekDay weekDay;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)

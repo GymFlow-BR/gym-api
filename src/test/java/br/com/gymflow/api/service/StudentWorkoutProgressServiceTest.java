@@ -3,6 +3,7 @@ package br.com.gymflow.api.service;
 import br.com.gymflow.api.config.security.StudentAccessValidator;
 import br.com.gymflow.api.domain.*;
 import br.com.gymflow.api.domain.enums.UserRole;
+import br.com.gymflow.api.domain.enums.WeekDay;
 import br.com.gymflow.api.domain.enums.WorkoutStatus;
 import br.com.gymflow.api.dto.studentWorkoutProgress.StudentCurrentWorkoutProgressResponse;
 import br.com.gymflow.api.dto.studentWorkoutProgress.StudentWorkoutExerciseProgressResponse;
@@ -19,6 +20,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +56,7 @@ class StudentWorkoutProgressServiceTest {
         Long studentWorkoutId = 50L;
         Long workoutId = 10L;
         Long workoutExerciseId = 100L;
+        WeekDay today = getTodayWeekDay();
 
         Organization organization = createOrganization(1L);
         User student = createStudent(studentId, organization);
@@ -62,9 +66,10 @@ class StudentWorkoutProgressServiceTest {
         Exercise exercise = createExercise(20L, organization, "Supino reto");
         WorkoutExercise workoutExercise = createWorkoutExercise(workoutExerciseId, workout, exercise, 1);
 
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
                 studentId,
-                WorkoutStatus.ACTIVE
+                WorkoutStatus.ACTIVE,
+                today
         )).thenReturn(Optional.of(studentWorkout));
 
         when(workoutExerciseRepository.findById(workoutExerciseId))
@@ -88,9 +93,10 @@ class StudentWorkoutProgressServiceTest {
         assertNotNull(response.completedAt());
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
-        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusOrderByAssignedAtDesc(
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
                 studentId,
-                WorkoutStatus.ACTIVE
+                WorkoutStatus.ACTIVE,
+                today
         );
         verify(workoutExerciseRepository).findById(workoutExerciseId);
         verify(progressRepository).findByStudentWorkoutIdAndWorkoutExerciseId(
@@ -121,6 +127,7 @@ class StudentWorkoutProgressServiceTest {
         Long studentWorkoutId = 50L;
         Long workoutId = 10L;
         Long workoutExerciseId = 100L;
+        WeekDay today = getTodayWeekDay();
 
         Organization organization = createOrganization(1L);
         User student = createStudent(studentId, organization);
@@ -138,9 +145,10 @@ class StudentWorkoutProgressServiceTest {
                 null
         );
 
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
                 studentId,
-                WorkoutStatus.ACTIVE
+                WorkoutStatus.ACTIVE,
+                today
         )).thenReturn(Optional.of(studentWorkout));
 
         when(workoutExerciseRepository.findById(workoutExerciseId))
@@ -162,6 +170,11 @@ class StudentWorkoutProgressServiceTest {
         assertTrue(existingProgress.getCompleted());
         assertNotNull(existingProgress.getCompletedAt());
 
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        );
         verify(progressRepository).save(existingProgress);
     }
 
@@ -171,6 +184,7 @@ class StudentWorkoutProgressServiceTest {
         Long studentWorkoutId = 50L;
         Long workoutId = 10L;
         Long workoutExerciseId = 100L;
+        WeekDay today = getTodayWeekDay();
 
         Organization organization = createOrganization(1L);
         User student = createStudent(studentId, organization);
@@ -188,9 +202,10 @@ class StudentWorkoutProgressServiceTest {
                 LocalDateTime.now()
         );
 
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
                 studentId,
-                WorkoutStatus.ACTIVE
+                WorkoutStatus.ACTIVE,
+                today
         )).thenReturn(Optional.of(studentWorkout));
 
         when(workoutExerciseRepository.findById(workoutExerciseId))
@@ -213,6 +228,11 @@ class StudentWorkoutProgressServiceTest {
         assertNull(existingProgress.getCompletedAt());
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        );
         verify(progressRepository).save(existingProgress);
         verify(eventPublisher, never()).publishEvent(any(StudentWorkoutExerciseCompletedEvent.class));
     }
@@ -222,6 +242,7 @@ class StudentWorkoutProgressServiceTest {
         Long studentId = 1L;
         Long studentWorkoutId = 50L;
         Long workoutId = 10L;
+        WeekDay today = getTodayWeekDay();
 
         Organization organization = createOrganization(1L);
         User student = createStudent(studentId, organization);
@@ -243,9 +264,10 @@ class StudentWorkoutProgressServiceTest {
                 LocalDateTime.now()
         );
 
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
                 studentId,
-                WorkoutStatus.ACTIVE
+                WorkoutStatus.ACTIVE,
+                today
         )).thenReturn(Optional.of(studentWorkout));
 
         when(workoutExerciseRepository.findAllByWorkoutIdOrderByExerciseOrderAsc(workoutId))
@@ -276,6 +298,11 @@ class StudentWorkoutProgressServiceTest {
         assertNull(response.exercises().get(1).completedAt());
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        );
         verify(progressRepository).findAllByStudentWorkoutId(studentWorkoutId);
     }
 
@@ -284,6 +311,7 @@ class StudentWorkoutProgressServiceTest {
         Long studentId = 1L;
         Long studentWorkoutId = 50L;
         Long workoutId = 10L;
+        WeekDay today = getTodayWeekDay();
 
         Organization organization = createOrganization(1L);
         User student = createStudent(studentId, organization);
@@ -291,9 +319,10 @@ class StudentWorkoutProgressServiceTest {
         Workout workout = createWorkout(workoutId, teacher, "Treino A");
         StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, workout);
 
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
                 studentId,
-                WorkoutStatus.ACTIVE
+                WorkoutStatus.ACTIVE,
+                today
         )).thenReturn(Optional.of(studentWorkout));
 
         when(workoutExerciseRepository.findAllByWorkoutIdOrderByExerciseOrderAsc(workoutId))
@@ -309,15 +338,23 @@ class StudentWorkoutProgressServiceTest {
         assertEquals(0, response.completedExercises());
         assertEquals(0, response.progressPercentage());
         assertTrue(response.exercises().isEmpty());
+
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        );
     }
 
     @Test
     void shouldThrowResourceNotFoundExceptionWhenStudentDoesNotHaveActiveWorkout() {
         Long studentId = 1L;
+        WeekDay today = getTodayWeekDay();
 
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
                 studentId,
-                WorkoutStatus.ACTIVE
+                WorkoutStatus.ACTIVE,
+                today
         )).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(
@@ -331,6 +368,11 @@ class StudentWorkoutProgressServiceTest {
         );
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        );
         verify(eventPublisher, never()).publishEvent(any(StudentWorkoutExerciseCompletedEvent.class));
     }
 
@@ -339,6 +381,7 @@ class StudentWorkoutProgressServiceTest {
         Long studentId = 1L;
         Long studentWorkoutId = 50L;
         Long workoutId = 10L;
+        WeekDay today = getTodayWeekDay();
 
         Organization organization = createOrganization(1L);
         User student = createStudent(studentId, organization);
@@ -349,9 +392,10 @@ class StudentWorkoutProgressServiceTest {
 
         StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, workout);
 
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
                 studentId,
-                WorkoutStatus.ACTIVE
+                WorkoutStatus.ACTIVE,
+                today
         )).thenReturn(Optional.of(studentWorkout));
 
         ResourceNotFoundException exception = assertThrows(
@@ -363,10 +407,366 @@ class StudentWorkoutProgressServiceTest {
                 "Active workout not found student id: " + studentId,
                 exception.getMessage()
         );
+
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        );
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenWorkoutExerciseDoesNotBelongToCurrentWorkout() {
+    void shouldThrowResourceNotFoundExceptionWhenWorkoutExerciseDoesNotBelongToStudentWorkout() {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long currentWorkoutId = 10L;
+        Long anotherWorkoutId = 99L;
+        Long workoutExerciseId = 100L;
+        WeekDay today = getTodayWeekDay();
+
+        Organization organization = createOrganization(1L);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+
+        Workout currentWorkout = createWorkout(currentWorkoutId, teacher, "Treino A");
+        Workout anotherWorkout = createWorkout(anotherWorkoutId, teacher, "Treino B");
+
+        StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, currentWorkout);
+
+        Exercise exercise = createExercise(20L, organization, "Supino reto");
+        WorkoutExercise workoutExerciseFromAnotherWorkout =
+                createWorkoutExercise(workoutExerciseId, anotherWorkout, exercise, 1);
+
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        )).thenReturn(Optional.of(studentWorkout));
+
+        when(workoutExerciseRepository.findById(workoutExerciseId))
+                .thenReturn(Optional.of(workoutExerciseFromAnotherWorkout));
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> studentWorkoutProgressService.completeExercise(studentId, workoutExerciseId)
+        );
+
+        assertEquals(
+                "Workout exercise not found with id: "
+                        + workoutExerciseId
+                        + " for student workout",
+                exception.getMessage()
+        );
+
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        );
+        verify(progressRepository, never()).save(any(StudentWorkoutExerciseProgress.class));
+    }
+
+    @Test
+    void shouldCompleteExerciseForSpecificStudentWorkoutSuccessfully() {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutId = 10L;
+        Long workoutExerciseId = 100L;
+
+        Organization organization = createOrganization(1L);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+        StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, workout);
+        Exercise exercise = createExercise(20L, organization, "Supino reto");
+        WorkoutExercise workoutExercise = createWorkoutExercise(workoutExerciseId, workout, exercise, 1);
+
+        when(studentWorkoutRepository.findById(studentWorkoutId))
+                .thenReturn(Optional.of(studentWorkout));
+
+        when(workoutExerciseRepository.findById(workoutExerciseId))
+                .thenReturn(Optional.of(workoutExercise));
+
+        when(progressRepository.findByStudentWorkoutIdAndWorkoutExerciseId(
+                studentWorkoutId,
+                workoutExerciseId
+        )).thenReturn(Optional.empty());
+
+        when(progressRepository.save(any(StudentWorkoutExerciseProgress.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        StudentWorkoutExerciseProgressResponse response =
+                studentWorkoutProgressService.completeExercise(
+                        studentId,
+                        studentWorkoutId,
+                        workoutExerciseId
+                );
+
+        assertNotNull(response);
+        assertEquals(studentWorkoutId, response.studentWorkoutId());
+        assertEquals(workoutExerciseId, response.workoutExerciseId());
+        assertTrue(response.completed());
+        assertNotNull(response.completedAt());
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+        verify(workoutExerciseRepository).findById(workoutExerciseId);
+        verify(progressRepository).save(any(StudentWorkoutExerciseProgress.class));
+    }
+
+    @Test
+    void shouldUncompleteExerciseForSpecificStudentWorkoutSuccessfully() {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutId = 10L;
+        Long workoutExerciseId = 100L;
+
+        Organization organization = createOrganization(1L);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+        StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, workout);
+        Exercise exercise = createExercise(20L, organization, "Supino reto");
+        WorkoutExercise workoutExercise = createWorkoutExercise(workoutExerciseId, workout, exercise, 1);
+
+        StudentWorkoutExerciseProgress existingProgress = createProgress(
+                500L,
+                studentWorkout,
+                workoutExercise,
+                true,
+                LocalDateTime.now()
+        );
+
+        when(studentWorkoutRepository.findById(studentWorkoutId))
+                .thenReturn(Optional.of(studentWorkout));
+
+        when(workoutExerciseRepository.findById(workoutExerciseId))
+                .thenReturn(Optional.of(workoutExercise));
+
+        when(progressRepository.findByStudentWorkoutIdAndWorkoutExerciseId(
+                studentWorkoutId,
+                workoutExerciseId
+        )).thenReturn(Optional.of(existingProgress));
+
+        when(progressRepository.save(existingProgress))
+                .thenReturn(existingProgress);
+
+        StudentWorkoutExerciseProgressResponse response =
+                studentWorkoutProgressService.uncompleteExercise(
+                        studentId,
+                        studentWorkoutId,
+                        workoutExerciseId
+                );
+
+        assertFalse(response.completed());
+        assertNull(response.completedAt());
+        assertFalse(existingProgress.getCompleted());
+        assertNull(existingProgress.getCompletedAt());
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+        verify(progressRepository).save(existingProgress);
+        verify(eventPublisher, never()).publishEvent(any(StudentWorkoutExerciseCompletedEvent.class));
+    }
+
+    @Test
+    void shouldGetSpecificStudentWorkoutProgressSuccessfully() {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutId = 10L;
+
+        Organization organization = createOrganization(1L);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+        StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, workout);
+
+        Exercise exerciseA = createExercise(20L, organization, "Supino reto");
+        Exercise exerciseB = createExercise(21L, organization, "Remada baixa");
+
+        WorkoutExercise workoutExerciseA = createWorkoutExercise(100L, workout, exerciseA, 1);
+        WorkoutExercise workoutExerciseB = createWorkoutExercise(101L, workout, exerciseB, 2);
+
+        StudentWorkoutExerciseProgress progressA = createProgress(
+                500L,
+                studentWorkout,
+                workoutExerciseA,
+                true,
+                LocalDateTime.now()
+        );
+
+        when(studentWorkoutRepository.findById(studentWorkoutId))
+                .thenReturn(Optional.of(studentWorkout));
+
+        when(workoutExerciseRepository.findAllByWorkoutIdOrderByExerciseOrderAsc(workoutId))
+                .thenReturn(List.of(workoutExerciseA, workoutExerciseB));
+
+        when(progressRepository.findAllByStudentWorkoutId(studentWorkoutId))
+                .thenReturn(List.of(progressA));
+
+        StudentCurrentWorkoutProgressResponse response =
+                studentWorkoutProgressService.getWorkoutProgress(studentId, studentWorkoutId);
+
+        assertNotNull(response);
+        assertEquals(studentId, response.studentId());
+        assertEquals(studentWorkoutId, response.studentWorkoutId());
+        assertEquals(workoutId, response.workoutId());
+        assertEquals("Treino A", response.workoutName());
+        assertEquals(2, response.totalExercises());
+        assertEquals(1, response.completedExercises());
+        assertEquals(50, response.progressPercentage());
+        assertEquals(2, response.exercises().size());
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+        verify(progressRepository).findAllByStudentWorkoutId(studentWorkoutId);
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenSpecificStudentWorkoutDoesNotExist() {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+
+        when(studentWorkoutRepository.findById(studentWorkoutId))
+                .thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> studentWorkoutProgressService.getWorkoutProgress(studentId, studentWorkoutId)
+        );
+
+        assertEquals(
+                "Student workout not found with id: "
+                        + studentWorkoutId
+                        + " for student id: "
+                        + studentId,
+                exception.getMessage()
+        );
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+
+        verifyNoInteractions(
+                workoutExerciseRepository,
+                progressRepository,
+                eventPublisher
+        );
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenSpecificStudentWorkoutBelongsToAnotherStudent() {
+        Long requestedStudentId = 1L;
+        Long ownerStudentId = 2L;
+        Long studentWorkoutId = 50L;
+        Long workoutId = 10L;
+
+        Organization organization = createOrganization(1L);
+        User ownerStudent = createStudent(ownerStudentId, organization);
+        User teacher = createTeacher(3L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+        StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, ownerStudent, workout);
+
+        when(studentWorkoutRepository.findById(studentWorkoutId))
+                .thenReturn(Optional.of(studentWorkout));
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> studentWorkoutProgressService.getWorkoutProgress(requestedStudentId, studentWorkoutId)
+        );
+
+        assertEquals(
+                "Student workout not found with id: "
+                        + studentWorkoutId
+                        + " for student id: "
+                        + requestedStudentId,
+                exception.getMessage()
+        );
+
+        verify(studentAccessValidator).validateStudentAccess(requestedStudentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+
+        verifyNoInteractions(
+                workoutExerciseRepository,
+                progressRepository,
+                eventPublisher
+        );
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenSpecificStudentWorkoutIsInactive() {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutId = 10L;
+
+        Organization organization = createOrganization(1L);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+        StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, workout);
+        studentWorkout.setStatus(WorkoutStatus.INACTIVE);
+
+        when(studentWorkoutRepository.findById(studentWorkoutId))
+                .thenReturn(Optional.of(studentWorkout));
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> studentWorkoutProgressService.getWorkoutProgress(studentId, studentWorkoutId)
+        );
+
+        assertEquals(
+                "Active workout not found student id: " + studentId,
+                exception.getMessage()
+        );
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+
+        verifyNoInteractions(
+                workoutExerciseRepository,
+                progressRepository,
+                eventPublisher
+        );
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenSpecificStudentWorkoutModelIsInactive() {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutId = 10L;
+
+        Organization organization = createOrganization(1L);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+        workout.setStatus(WorkoutStatus.INACTIVE);
+
+        StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, workout);
+
+        when(studentWorkoutRepository.findById(studentWorkoutId))
+                .thenReturn(Optional.of(studentWorkout));
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> studentWorkoutProgressService.getWorkoutProgress(studentId, studentWorkoutId)
+        );
+
+        assertEquals(
+                "Active workout not found student id: " + studentId,
+                exception.getMessage()
+        );
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+
+        verifyNoInteractions(
+                workoutExerciseRepository,
+                progressRepository,
+                eventPublisher
+        );
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenWorkoutExerciseDoesNotBelongToSpecificStudentWorkout() {
         Long studentId = 1L;
         Long studentWorkoutId = 50L;
         Long currentWorkoutId = 10L;
@@ -386,26 +786,31 @@ class StudentWorkoutProgressServiceTest {
         WorkoutExercise workoutExerciseFromAnotherWorkout =
                 createWorkoutExercise(workoutExerciseId, anotherWorkout, exercise, 1);
 
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(
-                studentId,
-                WorkoutStatus.ACTIVE
-        )).thenReturn(Optional.of(studentWorkout));
+        when(studentWorkoutRepository.findById(studentWorkoutId))
+                .thenReturn(Optional.of(studentWorkout));
 
         when(workoutExerciseRepository.findById(workoutExerciseId))
                 .thenReturn(Optional.of(workoutExerciseFromAnotherWorkout));
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> studentWorkoutProgressService.completeExercise(studentId, workoutExerciseId)
+                () -> studentWorkoutProgressService.completeExercise(
+                        studentId,
+                        studentWorkoutId,
+                        workoutExerciseId
+                )
         );
 
         assertEquals(
                 "Workout exercise not found with id: "
                         + workoutExerciseId
-                        + " for current workout",
+                        + " for student workout",
                 exception.getMessage()
         );
 
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+        verify(workoutExerciseRepository).findById(workoutExerciseId);
         verify(progressRepository, never()).save(any(StudentWorkoutExerciseProgress.class));
     }
 
@@ -480,6 +885,7 @@ class StudentWorkoutProgressServiceTest {
         studentWorkout.setWorkout(workout);
         studentWorkout.setStatus(WorkoutStatus.ACTIVE);
         studentWorkout.setAssignedAt(LocalDateTime.now());
+        studentWorkout.setWeekDay(getTodayWeekDay());
         return studentWorkout;
     }
 
@@ -497,5 +903,19 @@ class StudentWorkoutProgressServiceTest {
         progress.setCompleted(completed);
         progress.setCompletedAt(completedAt);
         return progress;
+    }
+
+    private WeekDay getTodayWeekDay() {
+        DayOfWeek dayOfWeek = LocalDate.now().getDayOfWeek();
+
+        return switch (dayOfWeek) {
+            case MONDAY -> WeekDay.MONDAY;
+            case TUESDAY -> WeekDay.TUESDAY;
+            case WEDNESDAY -> WeekDay.WEDNESDAY;
+            case THURSDAY -> WeekDay.THURSDAY;
+            case FRIDAY -> WeekDay.FRIDAY;
+            case SATURDAY -> WeekDay.SATURDAY;
+            case SUNDAY -> WeekDay.SUNDAY;
+        };
     }
 }

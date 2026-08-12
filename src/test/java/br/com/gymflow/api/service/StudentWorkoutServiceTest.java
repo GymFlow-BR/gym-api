@@ -7,6 +7,7 @@ import br.com.gymflow.api.domain.User;
 import br.com.gymflow.api.domain.Workout;
 import br.com.gymflow.api.domain.WorkoutExercise;
 import br.com.gymflow.api.domain.enums.UserRole;
+import br.com.gymflow.api.domain.enums.WeekDay;
 import br.com.gymflow.api.domain.enums.WorkoutStatus;
 import br.com.gymflow.api.dto.studentWorkouts.CreateStudentWorkoutRequest;
 import br.com.gymflow.api.dto.studentWorkouts.PatchStudentWorkoutRequest;
@@ -26,13 +27,20 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class StudentWorkoutServiceTest {
@@ -64,7 +72,10 @@ class StudentWorkoutServiceTest {
         Long workoutId = 10L;
         Long organizationId = 100L;
 
-        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(workoutId);
+        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(
+                workoutId,
+                WeekDay.MONDAY
+        );
 
         Organization organization = createOrganization(organizationId);
         User student = createStudent(studentId, organization);
@@ -78,7 +89,8 @@ class StudentWorkoutServiceTest {
                 student,
                 workout,
                 WorkoutStatus.ACTIVE,
-                assignedAt
+                assignedAt,
+                WeekDay.MONDAY
         );
 
         StudentWorkoutResponse expectedResponse = createStudentWorkoutResponse(
@@ -87,14 +99,22 @@ class StudentWorkoutServiceTest {
                 workoutId,
                 "Treino A",
                 assignedAt,
+                WeekDay.MONDAY,
                 WorkoutStatus.ACTIVE
         );
 
         when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
         when(workoutRepository.findById(workoutId)).thenReturn(Optional.of(workout));
-        when(studentWorkoutRepository.findByStudentIdAndWorkoutId(studentId, workoutId))
-                .thenReturn(Optional.empty());
-        when(studentWorkoutRepository.findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE)).thenReturn(List.of());
+        when(studentWorkoutRepository.findByStudentIdAndWorkoutIdAndWeekDay(
+                studentId,
+                workoutId,
+                WeekDay.MONDAY
+        )).thenReturn(Optional.empty());
+        when(studentWorkoutRepository.existsByStudentIdAndWeekDayAndStatus(
+                studentId,
+                WeekDay.MONDAY,
+                WorkoutStatus.ACTIVE
+        )).thenReturn(false);
         when(studentWorkoutMapper.toEntity(request)).thenReturn(new StudentWorkout());
         when(studentWorkoutRepository.save(any(StudentWorkout.class))).thenReturn(savedStudentWorkout);
         when(studentWorkoutMapper.toResponse(savedStudentWorkout)).thenReturn(expectedResponse);
@@ -107,16 +127,27 @@ class StudentWorkoutServiceTest {
         assertEquals("Aluno Teste", response.studentName());
         assertEquals(workoutId, response.workoutId());
         assertEquals("Treino A", response.workoutName());
+        assertEquals("Professor Teste", response.teacherName());
+        assertEquals(WeekDay.MONDAY, response.weekDay());
         assertEquals(WorkoutStatus.ACTIVE, response.status());
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
         verify(userRepository).findById(studentId);
         verify(workoutRepository).findById(workoutId);
-        verify(studentWorkoutRepository).findByStudentIdAndWorkoutId(studentId, workoutId);
-        verify(studentWorkoutRepository).findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE);
+        verify(studentWorkoutRepository).findByStudentIdAndWorkoutIdAndWeekDay(
+                studentId,
+                workoutId,
+                WeekDay.MONDAY
+        );
+        verify(studentWorkoutRepository).existsByStudentIdAndWeekDayAndStatus(
+                studentId,
+                WeekDay.MONDAY,
+                WorkoutStatus.ACTIVE
+        );
         verify(studentWorkoutMapper).toEntity(request);
         verify(studentWorkoutRepository).save(any(StudentWorkout.class));
         verify(studentWorkoutMapper).toResponse(savedStudentWorkout);
+        verify(studentWorkoutRepository, never()).saveAll(any());
     }
 
     @Test
@@ -124,7 +155,10 @@ class StudentWorkoutServiceTest {
         Long studentId = 1L;
         Long workoutId = 10L;
 
-        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(workoutId);
+        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(
+                workoutId,
+                WeekDay.MONDAY
+        );
 
         when(userRepository.findById(studentId)).thenReturn(Optional.empty());
 
@@ -152,7 +186,10 @@ class StudentWorkoutServiceTest {
         Long workoutId = 10L;
         Long organizationId = 100L;
 
-        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(workoutId);
+        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(
+                workoutId,
+                WeekDay.MONDAY
+        );
 
         Organization organization = createOrganization(organizationId);
         User student = createStudent(studentId, organization);
@@ -184,7 +221,10 @@ class StudentWorkoutServiceTest {
         Long workoutId = 10L;
         Long organizationId = 100L;
 
-        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(workoutId);
+        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(
+                workoutId,
+                WeekDay.MONDAY
+        );
 
         Organization organization = createOrganization(organizationId);
         User user = createUser(studentId, "Professor Teste", UserRole.TEACHER, organization);
@@ -214,7 +254,10 @@ class StudentWorkoutServiceTest {
         Long studentId = 1L;
         Long workoutId = 10L;
 
-        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(workoutId);
+        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(
+                workoutId,
+                WeekDay.MONDAY
+        );
 
         Organization studentOrganization = createOrganization(100L);
         Organization teacherOrganization = createOrganization(200L);
@@ -245,145 +288,209 @@ class StudentWorkoutServiceTest {
     }
 
     @Test
-    void shouldThrowDuplicateResourceExceptionWhenStudentAlreadyHasWorkoutAssigned() {
+    void shouldThrowDuplicateResourceExceptionWhenStudentAlreadyHasWorkoutAssignedForSameWeekDay() {
         Long studentId = 1L;
         Long workoutId = 10L;
         Long organizationId = 100L;
 
-        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(workoutId);
+        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(
+                workoutId,
+                WeekDay.MONDAY
+        );
 
         Organization organization = createOrganization(organizationId);
         User student = createStudent(studentId, organization);
         User teacher = createTeacher(2L, organization);
         Workout workout = createWorkout(workoutId, teacher, "Treino A");
 
-        when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
-        when(workoutRepository.findById(workoutId)).thenReturn(Optional.of(workout));
         StudentWorkout activeStudentWorkout = createStudentWorkout(
                 50L,
                 student,
                 workout,
                 WorkoutStatus.ACTIVE,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                WeekDay.MONDAY
         );
 
-        when(studentWorkoutRepository.findByStudentIdAndWorkoutId(studentId, workoutId))
-                .thenReturn(Optional.of(activeStudentWorkout));
+        when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(workoutRepository.findById(workoutId)).thenReturn(Optional.of(workout));
+        when(studentWorkoutRepository.findByStudentIdAndWorkoutIdAndWeekDay(
+                studentId,
+                workoutId,
+                WeekDay.MONDAY
+        )).thenReturn(Optional.of(activeStudentWorkout));
 
         DuplicateResourceException exception = assertThrows(
                 DuplicateResourceException.class,
                 () -> studentWorkoutService.create(studentId, request)
         );
 
-        assertEquals("Student already has this workout assigned", exception.getMessage());
+        assertEquals("Student already has this workout assigned for this week day", exception.getMessage());
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
         verify(userRepository).findById(studentId);
         verify(workoutRepository).findById(workoutId);
-        verify(studentWorkoutRepository).findByStudentIdAndWorkoutId(studentId, workoutId);
+        verify(studentWorkoutRepository).findByStudentIdAndWorkoutIdAndWeekDay(
+                studentId,
+                workoutId,
+                WeekDay.MONDAY
+        );
 
         verifyNoInteractions(
                 studentWorkoutMapper,
                 workoutExerciseRepository
         );
 
-        verify(studentWorkoutRepository, never()).findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE);
+        verify(studentWorkoutRepository, never()).existsByStudentIdAndWeekDayAndStatus(any(), any(), any());
         verify(studentWorkoutRepository, never()).save(any(StudentWorkout.class));
+        verify(studentWorkoutRepository, never()).saveAll(any());
     }
 
     @Test
-    void shouldDeactivateCurrentActiveWorkoutsWhenCreatingNewStudentWorkout() {
+    void shouldThrowDuplicateResourceExceptionWhenStudentAlreadyHasActiveWorkoutForSameWeekDay() {
         Long studentId = 1L;
         Long workoutId = 10L;
         Long organizationId = 100L;
 
-        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(workoutId);
+        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(
+                workoutId,
+                WeekDay.MONDAY
+        );
 
         Organization organization = createOrganization(organizationId);
         User student = createStudent(studentId, organization);
         User teacher = createTeacher(2L, organization);
-
         Workout workout = createWorkout(workoutId, teacher, "Treino Novo");
-        Workout oldWorkout = createWorkout(99L, teacher, "Treino Antigo");
 
-        StudentWorkout activeStudentWorkout = createStudentWorkout(
-                20L,
-                student,
-                oldWorkout,
-                WorkoutStatus.ACTIVE,
-                LocalDateTime.now().minusDays(1)
+        when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(workoutRepository.findById(workoutId)).thenReturn(Optional.of(workout));
+        when(studentWorkoutRepository.findByStudentIdAndWorkoutIdAndWeekDay(
+                studentId,
+                workoutId,
+                WeekDay.MONDAY
+        )).thenReturn(Optional.empty());
+        when(studentWorkoutRepository.existsByStudentIdAndWeekDayAndStatus(
+                studentId,
+                WeekDay.MONDAY,
+                WorkoutStatus.ACTIVE
+        )).thenReturn(true);
+
+        DuplicateResourceException exception = assertThrows(
+                DuplicateResourceException.class,
+                () -> studentWorkoutService.create(studentId, request)
         );
 
-        StudentWorkout newStudentWorkout = new StudentWorkout();
+        assertEquals("Student already has an active workout for this week day", exception.getMessage());
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(userRepository).findById(studentId);
+        verify(workoutRepository).findById(workoutId);
+        verify(studentWorkoutRepository).findByStudentIdAndWorkoutIdAndWeekDay(
+                studentId,
+                workoutId,
+                WeekDay.MONDAY
+        );
+        verify(studentWorkoutRepository).existsByStudentIdAndWeekDayAndStatus(
+                studentId,
+                WeekDay.MONDAY,
+                WorkoutStatus.ACTIVE
+        );
+
+        verify(studentWorkoutMapper, never()).toEntity(request);
+        verify(studentWorkoutRepository, never()).save(any(StudentWorkout.class));
+        verify(studentWorkoutRepository, never()).saveAll(any());
+        verifyNoInteractions(workoutExerciseRepository);
+    }
+
+    @Test
+    void shouldCreateMultipleActiveStudentWorkoutsOnDifferentWeekDays() {
+        Long studentId = 1L;
+        Long workoutId = 10L;
+        Long organizationId = 100L;
+
+        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(
+                workoutId,
+                WeekDay.WEDNESDAY
+        );
+
+        Organization organization = createOrganization(organizationId);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino B");
 
         StudentWorkout savedStudentWorkout = createStudentWorkout(
                 50L,
                 student,
                 workout,
                 WorkoutStatus.ACTIVE,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                WeekDay.WEDNESDAY
         );
 
         StudentWorkoutResponse expectedResponse = createStudentWorkoutResponse(
                 50L,
                 studentId,
                 workoutId,
-                "Treino Novo",
+                "Treino B",
                 savedStudentWorkout.getAssignedAt(),
+                WeekDay.WEDNESDAY,
                 WorkoutStatus.ACTIVE
         );
 
         when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
         when(workoutRepository.findById(workoutId)).thenReturn(Optional.of(workout));
-        when(studentWorkoutRepository.findByStudentIdAndWorkoutId(studentId, workoutId))
-                .thenReturn(Optional.empty());
-        when(studentWorkoutRepository.findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE))
-                .thenReturn(List.of(activeStudentWorkout));
-        when(studentWorkoutMapper.toEntity(request)).thenReturn(newStudentWorkout);
+        when(studentWorkoutRepository.findByStudentIdAndWorkoutIdAndWeekDay(
+                studentId,
+                workoutId,
+                WeekDay.WEDNESDAY
+        )).thenReturn(Optional.empty());
+        when(studentWorkoutRepository.existsByStudentIdAndWeekDayAndStatus(
+                studentId,
+                WeekDay.WEDNESDAY,
+                WorkoutStatus.ACTIVE
+        )).thenReturn(false);
+        when(studentWorkoutMapper.toEntity(request)).thenReturn(new StudentWorkout());
         when(studentWorkoutRepository.save(any(StudentWorkout.class))).thenReturn(savedStudentWorkout);
         when(studentWorkoutMapper.toResponse(savedStudentWorkout)).thenReturn(expectedResponse);
 
         StudentWorkoutResponse response = studentWorkoutService.create(studentId, request);
 
         assertNotNull(response);
-        assertEquals("Aluno Teste", response.studentName());
         assertEquals(WorkoutStatus.ACTIVE, response.status());
-        assertEquals(WorkoutStatus.INACTIVE, activeStudentWorkout.getStatus());
+        assertEquals(WeekDay.WEDNESDAY, response.weekDay());
 
-        verify(studentAccessValidator).validateStudentAccess(studentId);
-        verify(studentWorkoutRepository).saveAll(List.of(activeStudentWorkout));
+        verify(studentWorkoutRepository).existsByStudentIdAndWeekDayAndStatus(
+                studentId,
+                WeekDay.WEDNESDAY,
+                WorkoutStatus.ACTIVE
+        );
         verify(studentWorkoutRepository).save(any(StudentWorkout.class));
+        verify(studentWorkoutRepository, never()).saveAll(any());
     }
 
     @Test
-    void shouldReactivateInactiveStudentWorkoutWhenAssigningExistingInactiveWorkout() {
+    void shouldReactivateInactiveStudentWorkoutWithoutDeactivatingDifferentWeekDayWorkout() {
         Long studentId = 1L;
         Long workoutId = 10L;
         Long organizationId = 100L;
 
-        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(workoutId);
+        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(
+                workoutId,
+                WeekDay.MONDAY
+        );
 
         Organization organization = createOrganization(organizationId);
         User student = createStudent(studentId, organization);
         User teacher = createTeacher(2L, organization);
-
         Workout workoutToReactivate = createWorkout(workoutId, teacher, "Treino A");
-        Workout currentWorkout = createWorkout(20L, teacher, "Treino B");
 
         StudentWorkout inactiveStudentWorkout = createStudentWorkout(
                 50L,
                 student,
                 workoutToReactivate,
                 WorkoutStatus.INACTIVE,
-                LocalDateTime.now().minusDays(3)
-        );
-
-        StudentWorkout currentActiveStudentWorkout = createStudentWorkout(
-                60L,
-                student,
-                currentWorkout,
-                WorkoutStatus.ACTIVE,
-                LocalDateTime.now().minusDays(1)
+                LocalDateTime.now().minusDays(3),
+                WeekDay.MONDAY
         );
 
         StudentWorkoutResponse expectedResponse = createStudentWorkoutResponse(
@@ -392,15 +499,23 @@ class StudentWorkoutServiceTest {
                 workoutId,
                 "Treino A",
                 LocalDateTime.now(),
+                WeekDay.MONDAY,
                 WorkoutStatus.ACTIVE
         );
 
         when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
         when(workoutRepository.findById(workoutId)).thenReturn(Optional.of(workoutToReactivate));
-        when(studentWorkoutRepository.findByStudentIdAndWorkoutId(studentId, workoutId))
-                .thenReturn(Optional.of(inactiveStudentWorkout));
-        when(studentWorkoutRepository.findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE))
-                .thenReturn(List.of(currentActiveStudentWorkout));
+        when(studentWorkoutRepository.findByStudentIdAndWorkoutIdAndWeekDay(
+                studentId,
+                workoutId,
+                WeekDay.MONDAY
+        )).thenReturn(Optional.of(inactiveStudentWorkout));
+        when(studentWorkoutRepository.existsByStudentIdAndWeekDayAndStatusAndIdNot(
+                studentId,
+                WeekDay.MONDAY,
+                WorkoutStatus.ACTIVE,
+                50L
+        )).thenReturn(false);
         when(studentWorkoutRepository.save(inactiveStudentWorkout)).thenReturn(inactiveStudentWorkout);
         when(studentWorkoutMapper.toResponse(inactiveStudentWorkout)).thenReturn(expectedResponse);
 
@@ -408,21 +523,17 @@ class StudentWorkoutServiceTest {
 
         assertNotNull(response);
         assertEquals(50L, response.studentWorkoutId());
-        assertEquals(studentId, response.studentId());
-        assertEquals(workoutId, response.workoutId());
-        assertEquals("Treino A", response.workoutName());
         assertEquals(WorkoutStatus.ACTIVE, inactiveStudentWorkout.getStatus());
-        assertEquals(WorkoutStatus.INACTIVE, currentActiveStudentWorkout.getStatus());
+        assertEquals(WeekDay.MONDAY, inactiveStudentWorkout.getWeekDay());
 
-        verify(studentAccessValidator).validateStudentAccess(studentId);
-        verify(userRepository).findById(studentId);
-        verify(workoutRepository).findById(workoutId);
-        verify(studentWorkoutRepository).findByStudentIdAndWorkoutId(studentId, workoutId);
-        verify(studentWorkoutRepository).findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE);
-        verify(studentWorkoutRepository).saveAll(List.of(currentActiveStudentWorkout));
+        verify(studentWorkoutRepository).existsByStudentIdAndWeekDayAndStatusAndIdNot(
+                studentId,
+                WeekDay.MONDAY,
+                WorkoutStatus.ACTIVE,
+                50L
+        );
         verify(studentWorkoutRepository).save(inactiveStudentWorkout);
-        verify(studentWorkoutMapper).toResponse(inactiveStudentWorkout);
-
+        verify(studentWorkoutRepository, never()).saveAll(any());
         verify(studentWorkoutMapper, never()).toEntity(request);
     }
 
@@ -441,8 +552,23 @@ class StudentWorkoutServiceTest {
         LocalDateTime assignedAtA = LocalDateTime.now().minusDays(2);
         LocalDateTime assignedAtB = LocalDateTime.now().minusDays(1);
 
-        StudentWorkout studentWorkoutA = createStudentWorkout(1000L, student, workoutA, WorkoutStatus.INACTIVE, assignedAtA);
-        StudentWorkout studentWorkoutB = createStudentWorkout(2000L, student, workoutB, WorkoutStatus.ACTIVE, assignedAtB);
+        StudentWorkout studentWorkoutA = createStudentWorkout(
+                1000L,
+                student,
+                workoutA,
+                WorkoutStatus.INACTIVE,
+                assignedAtA,
+                WeekDay.MONDAY
+        );
+
+        StudentWorkout studentWorkoutB = createStudentWorkout(
+                2000L,
+                student,
+                workoutB,
+                WorkoutStatus.ACTIVE,
+                assignedAtB,
+                WeekDay.WEDNESDAY
+        );
 
         StudentWorkoutResponse responseA = createStudentWorkoutResponse(
                 1000L,
@@ -450,6 +576,7 @@ class StudentWorkoutServiceTest {
                 10L,
                 "Treino A",
                 assignedAtA,
+                WeekDay.MONDAY,
                 WorkoutStatus.INACTIVE
         );
 
@@ -459,6 +586,7 @@ class StudentWorkoutServiceTest {
                 20L,
                 "Treino B",
                 assignedAtB,
+                WeekDay.WEDNESDAY,
                 WorkoutStatus.ACTIVE
         );
 
@@ -475,11 +603,13 @@ class StudentWorkoutServiceTest {
         assertEquals(1000L, response.get(0).studentWorkoutId());
         assertEquals("Aluno Teste", response.get(0).studentName());
         assertEquals("Treino A", response.get(0).workoutName());
+        assertEquals(WeekDay.MONDAY, response.get(0).weekDay());
         assertEquals(WorkoutStatus.INACTIVE, response.get(0).status());
 
         assertEquals(2000L, response.get(1).studentWorkoutId());
         assertEquals("Aluno Teste", response.get(1).studentName());
         assertEquals("Treino B", response.get(1).workoutName());
+        assertEquals(WeekDay.WEDNESDAY, response.get(1).weekDay());
         assertEquals(WorkoutStatus.ACTIVE, response.get(1).status());
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
@@ -532,7 +662,14 @@ class StudentWorkoutServiceTest {
 
         LocalDateTime assignedAt = LocalDateTime.now();
 
-        StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, workout, WorkoutStatus.ACTIVE, assignedAt);
+        StudentWorkout studentWorkout = createStudentWorkout(
+                studentWorkoutId,
+                student,
+                workout,
+                WorkoutStatus.ACTIVE,
+                assignedAt,
+                WeekDay.MONDAY
+        );
 
         StudentWorkoutResponse expectedResponse = createStudentWorkoutResponse(
                 studentWorkoutId,
@@ -540,6 +677,7 @@ class StudentWorkoutServiceTest {
                 workoutId,
                 "Treino A",
                 assignedAt,
+                WeekDay.MONDAY,
                 WorkoutStatus.ACTIVE
         );
 
@@ -554,6 +692,7 @@ class StudentWorkoutServiceTest {
         assertEquals("Aluno Teste", response.studentName());
         assertEquals(workoutId, response.workoutId());
         assertEquals("Treino A", response.workoutName());
+        assertEquals(WeekDay.MONDAY, response.weekDay());
         assertEquals(WorkoutStatus.ACTIVE, response.status());
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
@@ -648,8 +787,23 @@ class StudentWorkoutServiceTest {
 
         LocalDateTime assignedAt = LocalDateTime.now();
 
-        StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, workout, WorkoutStatus.ACTIVE, assignedAt);
-        StudentWorkout updatedStudentWorkout = createStudentWorkout(studentWorkoutId, student, workout, WorkoutStatus.INACTIVE, assignedAt);
+        StudentWorkout studentWorkout = createStudentWorkout(
+                studentWorkoutId,
+                student,
+                workout,
+                WorkoutStatus.ACTIVE,
+                assignedAt,
+                WeekDay.MONDAY
+        );
+
+        StudentWorkout updatedStudentWorkout = createStudentWorkout(
+                studentWorkoutId,
+                student,
+                workout,
+                WorkoutStatus.INACTIVE,
+                assignedAt,
+                WeekDay.MONDAY
+        );
 
         StudentWorkoutResponse expectedResponse = createStudentWorkoutResponse(
                 studentWorkoutId,
@@ -657,6 +811,7 @@ class StudentWorkoutServiceTest {
                 workoutId,
                 "Treino A",
                 assignedAt,
+                WeekDay.MONDAY,
                 WorkoutStatus.INACTIVE
         );
 
@@ -672,8 +827,8 @@ class StudentWorkoutServiceTest {
         assertEquals("Aluno Teste", response.studentName());
         assertEquals(workoutId, response.workoutId());
         assertEquals("Treino A", response.workoutName());
+        assertEquals(WeekDay.MONDAY, response.weekDay());
         assertEquals(WorkoutStatus.INACTIVE, response.status());
-
         assertEquals(WorkoutStatus.INACTIVE, studentWorkout.getStatus());
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
@@ -718,10 +873,9 @@ class StudentWorkoutServiceTest {
     }
 
     @Test
-    void shouldDeactivateOtherActiveWorkoutsWhenPatchingStudentWorkoutToActive() {
+    void shouldPatchStudentWorkoutToActiveWhenThereIsNoActiveWorkoutForSameWeekDay() {
         Long studentId = 1L;
         Long studentWorkoutId = 50L;
-        Long otherStudentWorkoutId = 60L;
         Long workoutId = 10L;
         Long organizationId = 100L;
 
@@ -737,15 +891,8 @@ class StudentWorkoutServiceTest {
                 student,
                 workout,
                 WorkoutStatus.INACTIVE,
-                LocalDateTime.now().minusDays(2)
-        );
-
-        StudentWorkout otherActiveStudentWorkout = createStudentWorkout(
-                otherStudentWorkoutId,
-                student,
-                workout,
-                WorkoutStatus.ACTIVE,
-                LocalDateTime.now().minusDays(1)
+                LocalDateTime.now().minusDays(2),
+                WeekDay.MONDAY
         );
 
         StudentWorkoutResponse expectedResponse = createStudentWorkoutResponse(
@@ -754,12 +901,17 @@ class StudentWorkoutServiceTest {
                 workoutId,
                 "Treino A",
                 studentWorkoutToActivate.getAssignedAt(),
+                WeekDay.MONDAY,
                 WorkoutStatus.ACTIVE
         );
 
         when(studentWorkoutRepository.findById(studentWorkoutId)).thenReturn(Optional.of(studentWorkoutToActivate));
-        when(studentWorkoutRepository.findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE))
-                .thenReturn(List.of(otherActiveStudentWorkout));
+        when(studentWorkoutRepository.existsByStudentIdAndWeekDayAndStatusAndIdNot(
+                studentId,
+                WeekDay.MONDAY,
+                WorkoutStatus.ACTIVE,
+                studentWorkoutId
+        )).thenReturn(false);
         when(studentWorkoutRepository.save(studentWorkoutToActivate)).thenReturn(studentWorkoutToActivate);
         when(studentWorkoutMapper.toResponse(studentWorkoutToActivate)).thenReturn(expectedResponse);
 
@@ -770,21 +922,82 @@ class StudentWorkoutServiceTest {
         assertEquals(studentId, response.studentId());
         assertEquals("Aluno Teste", response.studentName());
         assertEquals(workoutId, response.workoutId());
+        assertEquals(WeekDay.MONDAY, response.weekDay());
         assertEquals(WorkoutStatus.ACTIVE, response.status());
-
         assertEquals(WorkoutStatus.ACTIVE, studentWorkoutToActivate.getStatus());
-        assertEquals(WorkoutStatus.INACTIVE, otherActiveStudentWorkout.getStatus());
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
         verify(studentWorkoutRepository).findById(studentWorkoutId);
-        verify(studentWorkoutRepository).findAllByStudentIdAndStatus(studentId, WorkoutStatus.ACTIVE);
-        verify(studentWorkoutRepository).saveAll(List.of(otherActiveStudentWorkout));
+        verify(studentWorkoutRepository).existsByStudentIdAndWeekDayAndStatusAndIdNot(
+                studentId,
+                WeekDay.MONDAY,
+                WorkoutStatus.ACTIVE,
+                studentWorkoutId
+        );
         verify(studentWorkoutRepository).save(studentWorkoutToActivate);
         verify(studentWorkoutMapper).toResponse(studentWorkoutToActivate);
+        verify(studentWorkoutRepository, never()).saveAll(any());
 
         verifyNoInteractions(
                 userRepository,
                 workoutRepository,
+                workoutExerciseRepository
+        );
+    }
+
+    @Test
+    void shouldThrowDuplicateResourceExceptionWhenPatchingStudentWorkoutToActiveAndSameWeekDayAlreadyHasActiveWorkout() {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutId = 10L;
+        Long organizationId = 100L;
+
+        PatchStudentWorkoutRequest request = new PatchStudentWorkoutRequest(WorkoutStatus.ACTIVE);
+
+        Organization organization = createOrganization(organizationId);
+        User student = createStudent(studentId, organization);
+        User teacher = createTeacher(2L, organization);
+        Workout workout = createWorkout(workoutId, teacher, "Treino A");
+
+        StudentWorkout studentWorkoutToActivate = createStudentWorkout(
+                studentWorkoutId,
+                student,
+                workout,
+                WorkoutStatus.INACTIVE,
+                LocalDateTime.now().minusDays(2),
+                WeekDay.MONDAY
+        );
+
+        when(studentWorkoutRepository.findById(studentWorkoutId)).thenReturn(Optional.of(studentWorkoutToActivate));
+        when(studentWorkoutRepository.existsByStudentIdAndWeekDayAndStatusAndIdNot(
+                studentId,
+                WeekDay.MONDAY,
+                WorkoutStatus.ACTIVE,
+                studentWorkoutId
+        )).thenReturn(true);
+
+        DuplicateResourceException exception = assertThrows(
+                DuplicateResourceException.class,
+                () -> studentWorkoutService.patch(studentId, studentWorkoutId, request)
+        );
+
+        assertEquals("Student already has an active workout for this week day", exception.getMessage());
+
+        verify(studentAccessValidator).validateStudentAccess(studentId);
+        verify(studentWorkoutRepository).findById(studentWorkoutId);
+        verify(studentWorkoutRepository).existsByStudentIdAndWeekDayAndStatusAndIdNot(
+                studentId,
+                WeekDay.MONDAY,
+                WorkoutStatus.ACTIVE,
+                studentWorkoutId
+        );
+        verify(studentWorkoutRepository, never()).save(any(StudentWorkout.class));
+        verify(studentWorkoutRepository, never()).saveAll(any());
+
+        verifyNoInteractions(
+                userRepository,
+                workoutRepository,
+                studentWorkoutMapper,
                 workoutExerciseRepository
         );
     }
@@ -806,7 +1019,8 @@ class StudentWorkoutServiceTest {
                 student,
                 workout,
                 WorkoutStatus.ACTIVE,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                WeekDay.MONDAY
         );
 
         when(studentWorkoutRepository.findById(studentWorkoutId)).thenReturn(Optional.of(studentWorkout));
@@ -860,6 +1074,7 @@ class StudentWorkoutServiceTest {
         Long studentWorkoutId = 50L;
         Long workoutId = 10L;
         Long organizationId = 100L;
+        WeekDay today = getTodayWeekDay();
 
         Organization organization = createOrganization(organizationId);
         User student = createStudent(studentId, organization);
@@ -868,7 +1083,14 @@ class StudentWorkoutServiceTest {
 
         LocalDateTime assignedAt = LocalDateTime.now();
 
-        StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, workout, WorkoutStatus.ACTIVE, assignedAt);
+        StudentWorkout studentWorkout = createStudentWorkout(
+                studentWorkoutId,
+                student,
+                workout,
+                WorkoutStatus.ACTIVE,
+                assignedAt,
+                today
+        );
 
         WorkoutExercise workoutExerciseA = createWorkoutExercise(100L, workout);
         WorkoutExercise workoutExerciseB = createWorkoutExercise(200L, workout);
@@ -880,16 +1102,23 @@ class StudentWorkoutServiceTest {
                 studentWorkoutId,
                 workoutId,
                 "Treino A",
+                "Professor Teste",
                 assignedAt,
+                today,
                 WorkoutStatus.ACTIVE,
                 List.of()
         );
 
         when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(studentId, WorkoutStatus.ACTIVE))
-                .thenReturn(Optional.of(studentWorkout));
-        when(workoutExerciseRepository.findAllByWorkoutIdOrderByExerciseOrderAsc(workoutId)).thenReturn(workoutExercises);
-        when(studentWorkoutMapper.toCurrentWorkoutResponse(studentWorkout, workoutExercises)).thenReturn(expectedResponse);
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        )).thenReturn(Optional.of(studentWorkout));
+        when(workoutExerciseRepository.findAllByWorkoutIdOrderByExerciseOrderAsc(workoutId))
+                .thenReturn(workoutExercises);
+        when(studentWorkoutMapper.toCurrentWorkoutResponse(studentWorkout, workoutExercises))
+                .thenReturn(expectedResponse);
 
         StudentCurrentWorkoutResponse response = studentWorkoutService.findCurrentWorkout(studentId);
 
@@ -898,11 +1127,17 @@ class StudentWorkoutServiceTest {
         assertEquals(studentWorkoutId, response.studentWorkoutId());
         assertEquals(workoutId, response.workoutId());
         assertEquals("Treino A", response.workoutName());
+        assertEquals("Professor Teste", response.teacherName());
+        assertEquals(today, response.weekDay());
         assertEquals(WorkoutStatus.ACTIVE, response.status());
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
         verify(userRepository).findById(studentId);
-        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusOrderByAssignedAtDesc(studentId, WorkoutStatus.ACTIVE);
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        );
         verify(workoutExerciseRepository).findAllByWorkoutIdOrderByExerciseOrderAsc(workoutId);
         verify(studentWorkoutMapper).toCurrentWorkoutResponse(studentWorkout, workoutExercises);
 
@@ -934,16 +1169,20 @@ class StudentWorkoutServiceTest {
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenStudentDoesNotHaveActiveWorkout() {
+    void shouldThrowResourceNotFoundExceptionWhenStudentDoesNotHaveActiveWorkoutForToday() {
         Long studentId = 1L;
         Long organizationId = 100L;
+        WeekDay today = getTodayWeekDay();
 
         Organization organization = createOrganization(organizationId);
         User student = createStudent(studentId, organization);
 
         when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(studentId, WorkoutStatus.ACTIVE))
-                .thenReturn(Optional.empty());
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        )).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
@@ -954,7 +1193,11 @@ class StudentWorkoutServiceTest {
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
         verify(userRepository).findById(studentId);
-        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusOrderByAssignedAtDesc(studentId, WorkoutStatus.ACTIVE);
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        );
 
         verifyNoInteractions(
                 workoutRepository,
@@ -969,6 +1212,7 @@ class StudentWorkoutServiceTest {
         Long studentWorkoutId = 50L;
         Long workoutId = 10L;
         Long organizationId = 100L;
+        WeekDay today = getTodayWeekDay();
 
         Organization organization = createOrganization(organizationId);
         User student = createStudent(studentId, organization);
@@ -977,7 +1221,15 @@ class StudentWorkoutServiceTest {
 
         LocalDateTime assignedAt = LocalDateTime.now();
 
-        StudentWorkout studentWorkout = createStudentWorkout(studentWorkoutId, student, workout, WorkoutStatus.ACTIVE, assignedAt);
+        StudentWorkout studentWorkout = createStudentWorkout(
+                studentWorkoutId,
+                student,
+                workout,
+                WorkoutStatus.ACTIVE,
+                assignedAt,
+                today
+        );
+
         List<WorkoutExercise> workoutExercises = List.of();
 
         StudentCurrentWorkoutResponse expectedResponse = new StudentCurrentWorkoutResponse(
@@ -985,16 +1237,23 @@ class StudentWorkoutServiceTest {
                 studentWorkoutId,
                 workoutId,
                 "Treino A",
+                "Professor Teste",
                 assignedAt,
+                today,
                 WorkoutStatus.ACTIVE,
                 List.of()
         );
 
         when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(studentId, WorkoutStatus.ACTIVE))
-                .thenReturn(Optional.of(studentWorkout));
-        when(workoutExerciseRepository.findAllByWorkoutIdOrderByExerciseOrderAsc(workoutId)).thenReturn(workoutExercises);
-        when(studentWorkoutMapper.toCurrentWorkoutResponse(studentWorkout, workoutExercises)).thenReturn(expectedResponse);
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        )).thenReturn(Optional.of(studentWorkout));
+        when(workoutExerciseRepository.findAllByWorkoutIdOrderByExerciseOrderAsc(workoutId))
+                .thenReturn(workoutExercises);
+        when(studentWorkoutMapper.toCurrentWorkoutResponse(studentWorkout, workoutExercises))
+                .thenReturn(expectedResponse);
 
         StudentCurrentWorkoutResponse response = studentWorkoutService.findCurrentWorkout(studentId);
 
@@ -1003,13 +1262,19 @@ class StudentWorkoutServiceTest {
         assertEquals(studentWorkoutId, response.studentWorkoutId());
         assertEquals(workoutId, response.workoutId());
         assertEquals("Treino A", response.workoutName());
+        assertEquals("Professor Teste", response.teacherName());
+        assertEquals(today, response.weekDay());
         assertEquals(WorkoutStatus.ACTIVE, response.status());
         assertNotNull(response.exercises());
         assertEquals(0, response.exercises().size());
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
         verify(userRepository).findById(studentId);
-        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusOrderByAssignedAtDesc(studentId, WorkoutStatus.ACTIVE);
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        );
         verify(workoutExerciseRepository).findAllByWorkoutIdOrderByExerciseOrderAsc(workoutId);
         verify(studentWorkoutMapper).toCurrentWorkoutResponse(studentWorkout, workoutExercises);
 
@@ -1022,6 +1287,7 @@ class StudentWorkoutServiceTest {
         Long studentWorkoutId = 50L;
         Long workoutId = 10L;
         Long organizationId = 100L;
+        WeekDay today = getTodayWeekDay();
 
         Organization organization = createOrganization(organizationId);
         User student = createStudent(studentId, organization);
@@ -1035,12 +1301,16 @@ class StudentWorkoutServiceTest {
                 student,
                 workout,
                 WorkoutStatus.ACTIVE,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                today
         );
 
         when(userRepository.findById(studentId)).thenReturn(Optional.of(student));
-        when(studentWorkoutRepository.findFirstByStudentIdAndStatusOrderByAssignedAtDesc(studentId, WorkoutStatus.ACTIVE))
-                .thenReturn(Optional.of(studentWorkout));
+        when(studentWorkoutRepository.findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        )).thenReturn(Optional.of(studentWorkout));
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
@@ -1051,7 +1321,11 @@ class StudentWorkoutServiceTest {
 
         verify(studentAccessValidator).validateStudentAccess(studentId);
         verify(userRepository).findById(studentId);
-        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusOrderByAssignedAtDesc(studentId, WorkoutStatus.ACTIVE);
+        verify(studentWorkoutRepository).findFirstByStudentIdAndStatusAndWeekDay(
+                studentId,
+                WorkoutStatus.ACTIVE,
+                today
+        );
 
         verifyNoInteractions(
                 workoutRepository,
@@ -1102,7 +1376,8 @@ class StudentWorkoutServiceTest {
             User student,
             Workout workout,
             WorkoutStatus status,
-            LocalDateTime assignedAt
+            LocalDateTime assignedAt,
+            WeekDay weekDay
     ) {
         StudentWorkout studentWorkout = new StudentWorkout();
         studentWorkout.setId(id);
@@ -1110,6 +1385,7 @@ class StudentWorkoutServiceTest {
         studentWorkout.setWorkout(workout);
         studentWorkout.setStatus(status);
         studentWorkout.setAssignedAt(assignedAt);
+        studentWorkout.setWeekDay(weekDay);
         return studentWorkout;
     }
 
@@ -1119,6 +1395,7 @@ class StudentWorkoutServiceTest {
             Long workoutId,
             String workoutName,
             LocalDateTime assignedAt,
+            WeekDay weekDay,
             WorkoutStatus status
     ) {
         return new StudentWorkoutResponse(
@@ -1127,7 +1404,9 @@ class StudentWorkoutServiceTest {
                 "Aluno Teste",
                 workoutId,
                 workoutName,
+                "Professor Teste",
                 assignedAt,
+                weekDay,
                 status,
                 null,
                 null
@@ -1139,5 +1418,19 @@ class StudentWorkoutServiceTest {
         workoutExercise.setId(id);
         workoutExercise.setWorkout(workout);
         return workoutExercise;
+    }
+
+    private WeekDay getTodayWeekDay() {
+        DayOfWeek dayOfWeek = LocalDate.now().getDayOfWeek();
+
+        return switch (dayOfWeek) {
+            case MONDAY -> WeekDay.MONDAY;
+            case TUESDAY -> WeekDay.TUESDAY;
+            case WEDNESDAY -> WeekDay.WEDNESDAY;
+            case THURSDAY -> WeekDay.THURSDAY;
+            case FRIDAY -> WeekDay.FRIDAY;
+            case SATURDAY -> WeekDay.SATURDAY;
+            case SUNDAY -> WeekDay.SUNDAY;
+        };
     }
 }
