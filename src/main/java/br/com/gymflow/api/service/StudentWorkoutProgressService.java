@@ -44,7 +44,83 @@ public class StudentWorkoutProgressService {
         studentAccessValidator.validateStudentAccess(studentId);
 
         StudentWorkout studentWorkout = getCurrentActiveStudentWorkout(studentId);
-        WorkoutExercise workoutExercise = getWorkoutExerciseFromCurrentWorkout(
+
+        return completeExerciseForStudentWorkout(studentWorkout, workoutExerciseId);
+    }
+
+    @Transactional
+    public StudentWorkoutExerciseProgressResponse completeExercise(
+            Long studentId,
+            Long studentWorkoutId,
+            Long workoutExerciseId
+    ) {
+        studentAccessValidator.validateStudentAccess(studentId);
+
+        StudentWorkout studentWorkout = getActiveStudentWorkoutById(
+                studentId,
+                studentWorkoutId
+        );
+
+        return completeExerciseForStudentWorkout(studentWorkout, workoutExerciseId);
+    }
+
+    @Transactional
+    public StudentWorkoutExerciseProgressResponse uncompleteExercise(
+            Long studentId,
+            Long workoutExerciseId
+    ) {
+        studentAccessValidator.validateStudentAccess(studentId);
+
+        StudentWorkout studentWorkout = getCurrentActiveStudentWorkout(studentId);
+
+        return uncompleteExerciseForStudentWorkout(studentWorkout, workoutExerciseId);
+    }
+
+    @Transactional
+    public StudentWorkoutExerciseProgressResponse uncompleteExercise(
+            Long studentId,
+            Long studentWorkoutId,
+            Long workoutExerciseId
+    ) {
+        studentAccessValidator.validateStudentAccess(studentId);
+
+        StudentWorkout studentWorkout = getActiveStudentWorkoutById(
+                studentId,
+                studentWorkoutId
+        );
+
+        return uncompleteExerciseForStudentWorkout(studentWorkout, workoutExerciseId);
+    }
+
+    @Transactional(readOnly = true)
+    public StudentCurrentWorkoutProgressResponse getCurrentWorkoutProgress(Long studentId) {
+        studentAccessValidator.validateStudentAccess(studentId);
+
+        StudentWorkout studentWorkout = getCurrentActiveStudentWorkout(studentId);
+
+        return buildWorkoutProgressResponse(studentWorkout);
+    }
+
+    @Transactional(readOnly = true)
+    public StudentCurrentWorkoutProgressResponse getWorkoutProgress(
+            Long studentId,
+            Long studentWorkoutId
+    ) {
+        studentAccessValidator.validateStudentAccess(studentId);
+
+        StudentWorkout studentWorkout = getActiveStudentWorkoutById(
+                studentId,
+                studentWorkoutId
+        );
+
+        return buildWorkoutProgressResponse(studentWorkout);
+    }
+
+    private StudentWorkoutExerciseProgressResponse completeExerciseForStudentWorkout(
+            StudentWorkout studentWorkout,
+            Long workoutExerciseId
+    ) {
+        WorkoutExercise workoutExercise = getWorkoutExerciseFromStudentWorkout(
                 studentWorkout,
                 workoutExerciseId
         );
@@ -76,15 +152,11 @@ public class StudentWorkoutProgressService {
         return toProgressResponse(savedProgress);
     }
 
-    @Transactional
-    public StudentWorkoutExerciseProgressResponse uncompleteExercise(
-            Long studentId,
+    private StudentWorkoutExerciseProgressResponse uncompleteExerciseForStudentWorkout(
+            StudentWorkout studentWorkout,
             Long workoutExerciseId
     ) {
-        studentAccessValidator.validateStudentAccess(studentId);
-
-        StudentWorkout studentWorkout = getCurrentActiveStudentWorkout(studentId);
-        WorkoutExercise workoutExercise = getWorkoutExerciseFromCurrentWorkout(
+        WorkoutExercise workoutExercise = getWorkoutExerciseFromStudentWorkout(
                 studentWorkout,
                 workoutExerciseId
         );
@@ -106,12 +178,9 @@ public class StudentWorkoutProgressService {
         return toProgressResponse(savedProgress);
     }
 
-    @Transactional(readOnly = true)
-    public StudentCurrentWorkoutProgressResponse getCurrentWorkoutProgress(Long studentId) {
-        studentAccessValidator.validateStudentAccess(studentId);
-
-        StudentWorkout studentWorkout = getCurrentActiveStudentWorkout(studentId);
-
+    private StudentCurrentWorkoutProgressResponse buildWorkoutProgressResponse(
+            StudentWorkout studentWorkout
+    ) {
         List<WorkoutExercise> workoutExercises = workoutExerciseRepository
                 .findAllByWorkoutIdOrderByExerciseOrderAsc(studentWorkout.getWorkout().getId());
 
@@ -180,16 +249,56 @@ public class StudentWorkoutProgressService {
                         "Active workout not found student id: " + studentId
                 ));
 
-        if (studentWorkout.getWorkout().getStatus() != WorkoutStatus.ACTIVE) {
+        validateStudentWorkoutIsActive(studentWorkout, studentId);
+
+        return studentWorkout;
+    }
+
+    private StudentWorkout getActiveStudentWorkoutById(
+            Long studentId,
+            Long studentWorkoutId
+    ) {
+        StudentWorkout studentWorkout = studentWorkoutRepository
+                .findById(studentWorkoutId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Student workout not found with id: "
+                                + studentWorkoutId
+                                + " for student id: "
+                                + studentId
+                ));
+
+        if (!studentWorkout.getStudent().getId().equals(studentId)) {
+            throw new ResourceNotFoundException(
+                    "Student workout not found with id: "
+                            + studentWorkoutId
+                            + " for student id: "
+                            + studentId
+            );
+        }
+
+        validateStudentWorkoutIsActive(studentWorkout, studentId);
+
+        return studentWorkout;
+    }
+
+    private void validateStudentWorkoutIsActive(
+            StudentWorkout studentWorkout,
+            Long studentId
+    ) {
+        if (studentWorkout.getStatus() != WorkoutStatus.ACTIVE) {
             throw new ResourceNotFoundException(
                     "Active workout not found student id: " + studentId
             );
         }
 
-        return studentWorkout;
+        if (studentWorkout.getWorkout().getStatus() != WorkoutStatus.ACTIVE) {
+            throw new ResourceNotFoundException(
+                    "Active workout not found student id: " + studentId
+            );
+        }
     }
 
-    private WorkoutExercise getWorkoutExerciseFromCurrentWorkout(
+    private WorkoutExercise getWorkoutExerciseFromStudentWorkout(
             StudentWorkout studentWorkout,
             Long workoutExerciseId
     ) {
@@ -198,14 +307,14 @@ public class StudentWorkoutProgressService {
                         "Workout exercise not found with id: " + workoutExerciseId
                 ));
 
-        Long currentWorkoutId = studentWorkout.getWorkout().getId();
+        Long studentWorkoutWorkoutId = studentWorkout.getWorkout().getId();
         Long workoutExerciseWorkoutId = workoutExercise.getWorkout().getId();
 
-        if (!currentWorkoutId.equals(workoutExerciseWorkoutId)) {
+        if (!studentWorkoutWorkoutId.equals(workoutExerciseWorkoutId)) {
             throw new ResourceNotFoundException(
                     "Workout exercise not found with id: "
                             + workoutExerciseId
-                            + " for current workout"
+                            + " for student workout"
             );
         }
 

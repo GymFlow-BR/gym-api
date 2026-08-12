@@ -416,7 +416,7 @@ class StudentWorkoutProgressServiceTest {
     }
 
     @Test
-    void shouldThrowResourceNotFoundExceptionWhenWorkoutExerciseDoesNotBelongToCurrentWorkout() {
+    void shouldThrowResourceNotFoundExceptionWhenWorkoutExerciseDoesNotBelongToStudentWorkout() {
         Long studentId = 1L;
         Long studentWorkoutId = 50L;
         Long currentWorkoutId = 10L;
@@ -454,7 +454,7 @@ class StudentWorkoutProgressServiceTest {
         assertEquals(
                 "Workout exercise not found with id: "
                         + workoutExerciseId
-                        + " for current workout",
+                        + " for student workout",
                 exception.getMessage()
         );
 
