@@ -252,4 +252,145 @@ class StudentWorkoutProgressControllerTest {
 
         verify(studentWorkoutProgressService).getCurrentWorkoutProgress(studentId);
     }
+
+    @Test
+    void shouldCompleteExerciseForSpecificStudentWorkoutSuccessfully() throws Exception {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutExerciseId = 100L;
+
+        LocalDateTime completedAt = LocalDateTime.of(2026, 6, 28, 20, 30);
+
+        StudentWorkoutExerciseProgressResponse response =
+                new StudentWorkoutExerciseProgressResponse(
+                        studentWorkoutId,
+                        workoutExerciseId,
+                        true,
+                        completedAt
+                );
+
+        when(studentWorkoutProgressService.completeExercise(
+                studentId,
+                studentWorkoutId,
+                workoutExerciseId
+        )).thenReturn(response);
+
+        mockMvc.perform(patch(
+                        "/api/students/{studentId}/workouts/{studentWorkoutId}/exercises/{workoutExerciseId}/complete",
+                        studentId,
+                        studentWorkoutId,
+                        workoutExerciseId
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.studentWorkoutId").value(studentWorkoutId))
+                .andExpect(jsonPath("$.workoutExerciseId").value(workoutExerciseId))
+                .andExpect(jsonPath("$.completed").value(true))
+                .andExpect(jsonPath("$.completedAt").exists());
+
+        verify(studentWorkoutProgressService).completeExercise(
+                studentId,
+                studentWorkoutId,
+                workoutExerciseId
+        );
+    }
+
+    @Test
+    void shouldUncompleteExerciseForSpecificStudentWorkoutSuccessfully() throws Exception {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+        Long workoutExerciseId = 100L;
+
+        StudentWorkoutExerciseProgressResponse response =
+                new StudentWorkoutExerciseProgressResponse(
+                        studentWorkoutId,
+                        workoutExerciseId,
+                        false,
+                        null
+                );
+
+        when(studentWorkoutProgressService.uncompleteExercise(
+                studentId,
+                studentWorkoutId,
+                workoutExerciseId
+        )).thenReturn(response);
+
+        mockMvc.perform(patch(
+                        "/api/students/{studentId}/workouts/{studentWorkoutId}/exercises/{workoutExerciseId}/uncomplete",
+                        studentId,
+                        studentWorkoutId,
+                        workoutExerciseId
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.studentWorkoutId").value(studentWorkoutId))
+                .andExpect(jsonPath("$.workoutExerciseId").value(workoutExerciseId))
+                .andExpect(jsonPath("$.completed").value(false))
+                .andExpect(jsonPath("$.completedAt").doesNotExist());
+
+        verify(studentWorkoutProgressService).uncompleteExercise(
+                studentId,
+                studentWorkoutId,
+                workoutExerciseId
+        );
+    }
+
+    @Test
+    void shouldGetSpecificStudentWorkoutProgressSuccessfully() throws Exception {
+        Long studentId = 1L;
+        Long studentWorkoutId = 50L;
+
+        StudentCurrentWorkoutExerciseProgressResponse exerciseA =
+                new StudentCurrentWorkoutExerciseProgressResponse(
+                        100L,
+                        20L,
+                        "Supino reto",
+                        1,
+                        true,
+                        LocalDateTime.of(2026, 6, 28, 20, 30)
+                );
+
+        StudentCurrentWorkoutExerciseProgressResponse exerciseB =
+                new StudentCurrentWorkoutExerciseProgressResponse(
+                        101L,
+                        21L,
+                        "Remada baixa",
+                        2,
+                        false,
+                        null
+                );
+
+        StudentCurrentWorkoutProgressResponse response =
+                new StudentCurrentWorkoutProgressResponse(
+                        studentId,
+                        studentWorkoutId,
+                        10L,
+                        "Treino A",
+                        2,
+                        1,
+                        50,
+                        List.of(exerciseA, exerciseB)
+                );
+
+        when(studentWorkoutProgressService.getWorkoutProgress(studentId, studentWorkoutId))
+                .thenReturn(response);
+
+        mockMvc.perform(get(
+                        "/api/students/{studentId}/workouts/{studentWorkoutId}/progress",
+                        studentId,
+                        studentWorkoutId
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.studentId").value(studentId))
+                .andExpect(jsonPath("$.studentWorkoutId").value(studentWorkoutId))
+                .andExpect(jsonPath("$.workoutId").value(10L))
+                .andExpect(jsonPath("$.workoutName").value("Treino A"))
+                .andExpect(jsonPath("$.totalExercises").value(2))
+                .andExpect(jsonPath("$.completedExercises").value(1))
+                .andExpect(jsonPath("$.progressPercentage").value(50))
+                .andExpect(jsonPath("$.exercises[0].workoutExerciseId").value(100L))
+                .andExpect(jsonPath("$.exercises[0].completed").value(true))
+                .andExpect(jsonPath("$.exercises[1].workoutExerciseId").value(101L))
+                .andExpect(jsonPath("$.exercises[1].completed").value(false));
+
+        verify(studentWorkoutProgressService).getWorkoutProgress(studentId, studentWorkoutId);
+    }
 }
