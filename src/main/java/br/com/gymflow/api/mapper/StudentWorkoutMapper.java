@@ -14,7 +14,10 @@ import java.util.List;
 public class StudentWorkoutMapper {
 
     public StudentWorkout toEntity(CreateStudentWorkoutRequest request) {
-        return new StudentWorkout();
+        StudentWorkout studentWorkout = new StudentWorkout();
+        studentWorkout.setWeekDay(request.weekDay());
+
+        return studentWorkout;
     }
 
     public StudentWorkoutResponse toResponse(StudentWorkout studentWorkout) {
@@ -24,7 +27,9 @@ public class StudentWorkoutMapper {
                 studentWorkout.getStudent().getName(),
                 studentWorkout.getWorkout().getId(),
                 studentWorkout.getWorkout().getWorkoutName(),
+                studentWorkout.getWorkout().getTeacher().getName(),
                 studentWorkout.getAssignedAt(),
+                studentWorkout.getWeekDay(),
                 studentWorkout.getStatus(),
                 studentWorkout.getCreatedAt(),
                 studentWorkout.getUpdatedAt()
@@ -45,7 +50,9 @@ public class StudentWorkoutMapper {
                 studentWorkout.getId(),
                 studentWorkout.getWorkout().getId(),
                 studentWorkout.getWorkout().getWorkoutName(),
+                studentWorkout.getWorkout().getTeacher().getName(),
                 studentWorkout.getAssignedAt(),
+                studentWorkout.getWeekDay(),
                 studentWorkout.getStatus(),
                 exercises
         );

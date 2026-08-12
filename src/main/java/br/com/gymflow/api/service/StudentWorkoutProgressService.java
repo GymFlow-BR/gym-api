@@ -4,6 +4,7 @@ import br.com.gymflow.api.config.security.StudentAccessValidator;
 import br.com.gymflow.api.domain.StudentWorkout;
 import br.com.gymflow.api.domain.StudentWorkoutExerciseProgress;
 import br.com.gymflow.api.domain.WorkoutExercise;
+import br.com.gymflow.api.domain.enums.WeekDay;
 import br.com.gymflow.api.domain.enums.WorkoutStatus;
 import br.com.gymflow.api.dto.studentWorkoutProgress.StudentCurrentWorkoutExerciseProgressResponse;
 import br.com.gymflow.api.dto.studentWorkoutProgress.StudentCurrentWorkoutProgressResponse;
@@ -18,6 +19,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -165,8 +168,14 @@ public class StudentWorkoutProgressService {
     }
 
     private StudentWorkout getCurrentActiveStudentWorkout(Long studentId) {
+        WeekDay today = getTodayWeekDay();
+
         StudentWorkout studentWorkout = studentWorkoutRepository
-                .findFirstByStudentIdAndStatusOrderByAssignedAtDesc(studentId, WorkoutStatus.ACTIVE)
+                .findFirstByStudentIdAndStatusAndWeekDay(
+                        studentId,
+                        WorkoutStatus.ACTIVE,
+                        today
+                )
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Active workout not found student id: " + studentId
                 ));
@@ -212,5 +221,19 @@ public class StudentWorkoutProgressService {
                 progress.getCompleted(),
                 progress.getCompletedAt()
         );
+    }
+
+    private WeekDay getTodayWeekDay() {
+        DayOfWeek dayOfWeek = LocalDate.now().getDayOfWeek();
+
+        return switch (dayOfWeek) {
+            case MONDAY -> WeekDay.MONDAY;
+            case TUESDAY -> WeekDay.TUESDAY;
+            case WEDNESDAY -> WeekDay.WEDNESDAY;
+            case THURSDAY -> WeekDay.THURSDAY;
+            case FRIDAY -> WeekDay.FRIDAY;
+            case SATURDAY -> WeekDay.SATURDAY;
+            case SUNDAY -> WeekDay.SUNDAY;
+        };
     }
 }

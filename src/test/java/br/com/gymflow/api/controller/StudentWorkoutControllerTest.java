@@ -1,6 +1,7 @@
 package br.com.gymflow.api.controller;
 
 import br.com.gymflow.api.config.security.JwtAuthenticationFilter;
+import br.com.gymflow.api.domain.enums.WeekDay;
 import br.com.gymflow.api.domain.enums.WorkoutStatus;
 import br.com.gymflow.api.dto.studentWorkouts.CreateStudentWorkoutRequest;
 import br.com.gymflow.api.dto.studentWorkouts.PatchStudentWorkoutRequest;
@@ -26,14 +27,15 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-
 
 @WebMvcTest(StudentWorkoutController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -53,7 +55,6 @@ class StudentWorkoutControllerTest {
 
     @Test
     void shouldCreateStudentWorkoutSuccessfully() throws Exception {
-        // Arrange
         Long studentId = 1L;
 
         CreateStudentWorkoutRequest request = createStudentWorkoutRequest();
@@ -62,13 +63,13 @@ class StudentWorkoutControllerTest {
                 100L,
                 studentId,
                 10L,
-                WorkoutStatus.ACTIVE
+                WorkoutStatus.ACTIVE,
+                WeekDay.MONDAY
         );
 
         when(studentWorkoutService.create(eq(studentId), any(CreateStudentWorkoutRequest.class)))
                 .thenReturn(response);
 
-        // Act + Assert
         mockMvc.perform(post("/api/students/{studentId}/workouts", studentId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -78,6 +79,8 @@ class StudentWorkoutControllerTest {
                 .andExpect(jsonPath("$.studentName").value("Aluno Teste"))
                 .andExpect(jsonPath("$.workoutId").value(10L))
                 .andExpect(jsonPath("$.workoutName").value("Treino A"))
+                .andExpect(jsonPath("$.teacherName").value("Professor Teste"))
+                .andExpect(jsonPath("$.weekDay").value("MONDAY"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
 
         verify(studentWorkoutService).create(eq(studentId), any(CreateStudentWorkoutRequest.class));
@@ -85,14 +88,14 @@ class StudentWorkoutControllerTest {
 
     @Test
     void shouldFindAllStudentWorkoutsSuccessfully() throws Exception {
-        // Arrange
         Long studentId = 1L;
 
         StudentWorkoutResponse responseA = createStudentWorkoutResponse(
                 100L,
                 studentId,
                 10L,
-                WorkoutStatus.ACTIVE
+                WorkoutStatus.ACTIVE,
+                WeekDay.MONDAY
         );
 
         StudentWorkoutResponse responseB = new StudentWorkoutResponse(
@@ -101,7 +104,9 @@ class StudentWorkoutControllerTest {
                 "Aluno Teste",
                 20L,
                 "Treino B",
+                "Professor Teste",
                 LocalDateTime.of(2026, 6, 23, 11, 0),
+                WeekDay.WEDNESDAY,
                 WorkoutStatus.INACTIVE,
                 null,
                 null
@@ -110,7 +115,6 @@ class StudentWorkoutControllerTest {
         when(studentWorkoutService.findAllByStudentId(studentId))
                 .thenReturn(List.of(responseA, responseB));
 
-        // Act + Assert
         mockMvc.perform(get("/api/students/{studentId}/workouts", studentId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].studentWorkoutId").value(100L))
@@ -118,12 +122,16 @@ class StudentWorkoutControllerTest {
                 .andExpect(jsonPath("$[0].studentName").value("Aluno Teste"))
                 .andExpect(jsonPath("$[0].workoutId").value(10L))
                 .andExpect(jsonPath("$[0].workoutName").value("Treino A"))
+                .andExpect(jsonPath("$[0].teacherName").value("Professor Teste"))
+                .andExpect(jsonPath("$[0].weekDay").value("MONDAY"))
                 .andExpect(jsonPath("$[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$[1].studentWorkoutId").value(200L))
                 .andExpect(jsonPath("$[1].studentId").value(studentId))
                 .andExpect(jsonPath("$[1].studentName").value("Aluno Teste"))
                 .andExpect(jsonPath("$[1].workoutId").value(20L))
                 .andExpect(jsonPath("$[1].workoutName").value("Treino B"))
+                .andExpect(jsonPath("$[1].teacherName").value("Professor Teste"))
+                .andExpect(jsonPath("$[1].weekDay").value("WEDNESDAY"))
                 .andExpect(jsonPath("$[1].status").value("INACTIVE"));
 
         verify(studentWorkoutService).findAllByStudentId(studentId);
@@ -131,7 +139,6 @@ class StudentWorkoutControllerTest {
 
     @Test
     void shouldFindStudentWorkoutByIdSuccessfully() throws Exception {
-        // Arrange
         Long studentId = 1L;
         Long studentWorkoutId = 100L;
 
@@ -139,13 +146,13 @@ class StudentWorkoutControllerTest {
                 studentWorkoutId,
                 studentId,
                 10L,
-                WorkoutStatus.ACTIVE
+                WorkoutStatus.ACTIVE,
+                WeekDay.MONDAY
         );
 
         when(studentWorkoutService.findById(studentId, studentWorkoutId))
                 .thenReturn(response);
 
-        // Act + Assert
         mockMvc.perform(get(
                         "/api/students/{studentId}/workouts/{studentWorkoutId}",
                         studentId,
@@ -157,6 +164,8 @@ class StudentWorkoutControllerTest {
                 .andExpect(jsonPath("$.studentName").value("Aluno Teste"))
                 .andExpect(jsonPath("$.workoutId").value(10L))
                 .andExpect(jsonPath("$.workoutName").value("Treino A"))
+                .andExpect(jsonPath("$.teacherName").value("Professor Teste"))
+                .andExpect(jsonPath("$.weekDay").value("MONDAY"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
 
         verify(studentWorkoutService).findById(studentId, studentWorkoutId);
@@ -164,7 +173,6 @@ class StudentWorkoutControllerTest {
 
     @Test
     void shouldPatchStudentWorkoutSuccessfully() throws Exception {
-        // Arrange
         Long studentId = 1L;
         Long studentWorkoutId = 100L;
 
@@ -174,7 +182,8 @@ class StudentWorkoutControllerTest {
                 studentWorkoutId,
                 studentId,
                 10L,
-                WorkoutStatus.INACTIVE
+                WorkoutStatus.INACTIVE,
+                WeekDay.MONDAY
         );
 
         when(studentWorkoutService.patch(
@@ -183,7 +192,6 @@ class StudentWorkoutControllerTest {
                 any(PatchStudentWorkoutRequest.class)
         )).thenReturn(response);
 
-        // Act + Assert
         mockMvc.perform(patch(
                         "/api/students/{studentId}/workouts/{studentWorkoutId}",
                         studentId,
@@ -197,6 +205,8 @@ class StudentWorkoutControllerTest {
                 .andExpect(jsonPath("$.studentName").value("Aluno Teste"))
                 .andExpect(jsonPath("$.workoutId").value(10L))
                 .andExpect(jsonPath("$.workoutName").value("Treino A"))
+                .andExpect(jsonPath("$.teacherName").value("Professor Teste"))
+                .andExpect(jsonPath("$.weekDay").value("MONDAY"))
                 .andExpect(jsonPath("$.status").value("INACTIVE"));
 
         verify(studentWorkoutService).patch(
@@ -208,11 +218,9 @@ class StudentWorkoutControllerTest {
 
     @Test
     void shouldDeleteStudentWorkoutSuccessfully() throws Exception {
-        // Arrange
         Long studentId = 1L;
         Long studentWorkoutId = 100L;
 
-        // Act + Assert
         mockMvc.perform(delete(
                         "/api/students/{studentId}/workouts/{studentWorkoutId}",
                         studentId,
@@ -225,7 +233,6 @@ class StudentWorkoutControllerTest {
 
     @Test
     void shouldFindCurrentWorkoutSuccessfully() throws Exception {
-        // Arrange
         Long studentId = 1L;
 
         StudentCurrentWorkoutResponse response = createStudentCurrentWorkoutResponse(studentId);
@@ -233,13 +240,14 @@ class StudentWorkoutControllerTest {
         when(studentWorkoutService.findCurrentWorkout(studentId))
                 .thenReturn(response);
 
-        // Act + Assert
         mockMvc.perform(get("/api/students/{studentId}/workouts/current", studentId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.studentId").value(studentId))
                 .andExpect(jsonPath("$.studentWorkoutId").value(100L))
                 .andExpect(jsonPath("$.workoutId").value(10L))
                 .andExpect(jsonPath("$.workoutName").value("Treino A"))
+                .andExpect(jsonPath("$.teacherName").value("Professor Teste"))
+                .andExpect(jsonPath("$.weekDay").value("MONDAY"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.exercises[0].workoutExerciseId").value(1000L))
                 .andExpect(jsonPath("$.exercises[0].exerciseId").value(20L))
@@ -261,7 +269,6 @@ class StudentWorkoutControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenStudentWorkoutDoesNotExist() throws Exception {
-        // Arrange
         Long studentId = 1L;
         Long studentWorkoutId = 100L;
 
@@ -270,7 +277,6 @@ class StudentWorkoutControllerTest {
                         "Student workout not found with id: " + studentWorkoutId
                 ));
 
-        // Act + Assert
         mockMvc.perform(get(
                         "/api/students/{studentId}/workouts/{studentWorkoutId}",
                         studentId,
@@ -287,24 +293,22 @@ class StudentWorkoutControllerTest {
 
     @Test
     void shouldReturnConflictWhenStudentWorkoutAlreadyExists() throws Exception {
-        // Arrange
         Long studentId = 1L;
 
         CreateStudentWorkoutRequest request = createStudentWorkoutRequest();
 
         when(studentWorkoutService.create(eq(studentId), any(CreateStudentWorkoutRequest.class)))
                 .thenThrow(new DuplicateResourceException(
-                        "Student already has this workout assigned"
+                        "Student already has this workout assigned for this week day"
                 ));
 
-        // Act + Assert
         mockMvc.perform(post("/api/students/{studentId}/workouts", studentId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.error").value("Conflict"))
-                .andExpect(jsonPath("$.message").value("Student already has this workout assigned"))
+                .andExpect(jsonPath("$.message").value("Student already has this workout assigned for this week day"))
                 .andExpect(jsonPath("$.path").value("/api/students/" + studentId + "/workouts"));
 
         verify(studentWorkoutService).create(eq(studentId), any(CreateStudentWorkoutRequest.class));
@@ -312,14 +316,13 @@ class StudentWorkoutControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenCreateStudentWorkoutRequestIsInvalid() throws Exception {
-        // Arrange
         Long studentId = 1L;
 
         CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(
-                null
+                null,
+                WeekDay.MONDAY
         );
 
-        // Act + Assert
         mockMvc.perform(post("/api/students/{studentId}/workouts", studentId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -334,8 +337,29 @@ class StudentWorkoutControllerTest {
     }
 
     @Test
+    void shouldReturnBadRequestWhenWeekDayIsNull() throws Exception {
+        Long studentId = 1L;
+
+        CreateStudentWorkoutRequest request = new CreateStudentWorkoutRequest(
+                10L,
+                null
+        );
+
+        mockMvc.perform(post("/api/students/{studentId}/workouts", studentId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("weekDay: O dia da semana é obrigatório"))
+                .andExpect(jsonPath("$.path").value("/api/students/" + studentId + "/workouts"));
+
+        verify(studentWorkoutService, never())
+                .create(eq(studentId), any(CreateStudentWorkoutRequest.class));
+    }
+
+    @Test
     void shouldReturnBadRequestWhenBusinessRuleIsViolated() throws Exception {
-        // Arrange
         Long studentId = 1L;
 
         CreateStudentWorkoutRequest request = createStudentWorkoutRequest();
@@ -345,7 +369,6 @@ class StudentWorkoutControllerTest {
                         "User is not a student with id: " + studentId
                 ));
 
-        // Act + Assert
         mockMvc.perform(post("/api/students/{studentId}/workouts", studentId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -360,7 +383,6 @@ class StudentWorkoutControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenCurrentWorkoutDoesNotExist() throws Exception {
-        // Arrange
         Long studentId = 1L;
 
         when(studentWorkoutService.findCurrentWorkout(studentId))
@@ -368,7 +390,6 @@ class StudentWorkoutControllerTest {
                         "Active workout not found student id: " + studentId
                 ));
 
-        // Act + Assert
         mockMvc.perform(get("/api/students/{studentId}/workouts/current", studentId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
@@ -381,7 +402,6 @@ class StudentWorkoutControllerTest {
 
     @Test
     void shouldFindCurrentWorkoutWithEmptyExercisesSuccessfully() throws Exception {
-        // Arrange
         Long studentId = 1L;
 
         StudentCurrentWorkoutResponse response = new StudentCurrentWorkoutResponse(
@@ -389,7 +409,9 @@ class StudentWorkoutControllerTest {
                 100L,
                 10L,
                 "Treino A",
+                "Professor Teste",
                 LocalDateTime.of(2026, 6, 23, 10, 0),
+                WeekDay.MONDAY,
                 WorkoutStatus.ACTIVE,
                 List.of()
         );
@@ -397,13 +419,14 @@ class StudentWorkoutControllerTest {
         when(studentWorkoutService.findCurrentWorkout(studentId))
                 .thenReturn(response);
 
-        // Act + Assert
         mockMvc.perform(get("/api/students/{studentId}/workouts/current", studentId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.studentId").value(studentId))
                 .andExpect(jsonPath("$.studentWorkoutId").value(100L))
                 .andExpect(jsonPath("$.workoutId").value(10L))
                 .andExpect(jsonPath("$.workoutName").value("Treino A"))
+                .andExpect(jsonPath("$.teacherName").value("Professor Teste"))
+                .andExpect(jsonPath("$.weekDay").value("MONDAY"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.exercises").isArray())
                 .andExpect(jsonPath("$.exercises").isEmpty());
@@ -413,7 +436,8 @@ class StudentWorkoutControllerTest {
 
     private CreateStudentWorkoutRequest createStudentWorkoutRequest() {
         return new CreateStudentWorkoutRequest(
-                10L
+                10L,
+                WeekDay.MONDAY
         );
     }
 
@@ -427,7 +451,8 @@ class StudentWorkoutControllerTest {
             Long studentWorkoutId,
             Long studentId,
             Long workoutId,
-            WorkoutStatus status
+            WorkoutStatus status,
+            WeekDay weekDay
     ) {
         return new StudentWorkoutResponse(
                 studentWorkoutId,
@@ -435,7 +460,9 @@ class StudentWorkoutControllerTest {
                 "Aluno Teste",
                 workoutId,
                 "Treino A",
+                "Professor Teste",
                 LocalDateTime.of(2026, 6, 23, 10, 0),
+                weekDay,
                 status,
                 null,
                 null
@@ -465,7 +492,9 @@ class StudentWorkoutControllerTest {
                 100L,
                 10L,
                 "Treino A",
+                "Professor Teste",
                 LocalDateTime.of(2026, 6, 23, 10, 0),
+                WeekDay.MONDAY,
                 WorkoutStatus.ACTIVE,
                 List.of(exerciseResponse)
         );

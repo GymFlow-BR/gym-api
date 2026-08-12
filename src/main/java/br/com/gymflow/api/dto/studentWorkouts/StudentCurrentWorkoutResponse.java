@@ -1,5 +1,6 @@
 package br.com.gymflow.api.dto.studentWorkouts;
 
+import br.com.gymflow.api.domain.enums.WeekDay;
 import br.com.gymflow.api.domain.enums.WorkoutStatus;
 
 import java.time.LocalDateTime;
@@ -11,7 +12,9 @@ public record StudentCurrentWorkoutResponse(
         Long studentWorkoutId,
         Long workoutId,
         String workoutName,
+        String teacherName,
         LocalDateTime assignedAt,
+        WeekDay weekDay,
         WorkoutStatus status,
         List<StudentCurrentWorkoutExerciseResponse> exercises
 ) {
