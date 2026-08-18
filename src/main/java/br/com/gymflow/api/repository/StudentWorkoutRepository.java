@@ -23,11 +23,6 @@ public interface StudentWorkoutRepository extends JpaRepository<StudentWorkout, 
             WeekDay weekDay
     );
 
-    Optional<StudentWorkout> findByStudentIdAndWorkoutIdAndWeekDay(
-            Long studentId,
-            Long workoutId,
-            WeekDay weekDay
-    );
 
     List<StudentWorkout> findAllByStudentIdAndStatus(Long studentId, WorkoutStatus status);
 

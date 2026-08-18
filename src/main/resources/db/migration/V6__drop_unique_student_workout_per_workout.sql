@@ -1,0 +1,2 @@
+ALTER TABLE student_workouts
+DROP CONSTRAINT IF EXISTS uk_student_workouts_student_workout;
