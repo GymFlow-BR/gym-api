@@ -48,18 +48,7 @@ public class StudentWorkoutService {
 
         validateStudentBelongsToWorkoutOrganization(student, workout);
 
-        return studentWorkoutRepository
-                .findByStudentIdAndWorkoutIdAndWeekDay(
-                        studentId,
-                        request.workoutId(),
-                        request.weekDay()
-                )
-                .map(existingStudentWorkout ->
-                        reactivateExistingStudentWorkout(studentId, request, existingStudentWorkout)
-                )
-                .orElseGet(() ->
-                        createNewStudentWorkout(studentId, request, student, workout)
-                );
+        return createNewStudentWorkout(studentId, request, student, workout);
     }
 
     @Transactional(readOnly = true)
@@ -222,31 +211,6 @@ public class StudentWorkoutService {
         }
     }
 
-    private StudentWorkoutResponse reactivateExistingStudentWorkout(
-            Long studentId,
-            CreateStudentWorkoutRequest request,
-            StudentWorkout existingStudentWorkout
-    ) {
-        if (existingStudentWorkout.getStatus() == WorkoutStatus.ACTIVE) {
-            throw new DuplicateResourceException(
-                    "Student already has this workout assigned for this week day"
-            );
-        }
-
-        validateActiveWorkoutConflictForWeekDay(
-                studentId,
-                request.weekDay(),
-                existingStudentWorkout.getId()
-        );
-
-        existingStudentWorkout.setStatus(WorkoutStatus.ACTIVE);
-        existingStudentWorkout.setAssignedAt(LocalDateTime.now());
-        existingStudentWorkout.setWeekDay(request.weekDay());
-
-        StudentWorkout savedStudentWorkout = studentWorkoutRepository.save(existingStudentWorkout);
-
-        return studentWorkoutMapper.toResponse(savedStudentWorkout);
-    }
 
     private StudentWorkoutResponse createNewStudentWorkout(
             Long studentId,

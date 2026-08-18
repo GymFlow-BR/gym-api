@@ -359,14 +359,14 @@ class StudentWorkoutControllerTest {
     }
 
     @Test
-    void shouldReturnConflictWhenStudentWorkoutAlreadyExists() throws Exception {
+    void shouldReturnConflictWhenStudentAlreadyHasActiveWorkoutForWeekDay() throws Exception {
         Long studentId = 1L;
 
         CreateStudentWorkoutRequest request = createStudentWorkoutRequest();
 
         when(studentWorkoutService.create(eq(studentId), any(CreateStudentWorkoutRequest.class)))
                 .thenThrow(new DuplicateResourceException(
-                        "Student already has this workout assigned for this week day"
+                        "Student already has an active workout for this week day"
                 ));
 
         mockMvc.perform(post("/api/students/{studentId}/workouts", studentId)
@@ -375,7 +375,7 @@ class StudentWorkoutControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.error").value("Conflict"))
-                .andExpect(jsonPath("$.message").value("Student already has this workout assigned for this week day"))
+                .andExpect(jsonPath("$.message").value("Student already has an active workout for this week day"))
                 .andExpect(jsonPath("$.path").value("/api/students/" + studentId + "/workouts"));
 
         verify(studentWorkoutService).create(eq(studentId), any(CreateStudentWorkoutRequest.class));
