@@ -43,7 +43,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/api/students/*/workouts/current/exercises/*/complete",
-                                "/api/students/*/workouts/current/exercises/*/uncomplete"
+                                "/api/students/*/workouts/current/exercises/*/uncomplete",
+                                "/api/students/*/workouts/*/exercises/*/complete",
+                                "/api/students/*/workouts/*/exercises/*/uncomplete"
                         )
                         .hasRole("STUDENT")
 
