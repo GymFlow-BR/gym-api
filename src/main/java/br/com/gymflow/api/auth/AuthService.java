@@ -111,6 +111,10 @@ public class AuthService {
     public void changePassword(ChangePasswordRequest request) {
         User authenticatedUser = getAuthenticatedUserEntity();
 
+        if (!request.newPassword().equals(request.confirmNewPassword())) {
+            throw new BusinessRuleException("New password confirmation does not match");
+        }
+
         if (!passwordEncoder.matches(
                 request.currentPassword(),
                 authenticatedUser.getPasswordHash()

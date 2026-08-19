@@ -10,6 +10,9 @@ public record ChangePasswordRequest(
 
         @NotBlank(message = "New password is required")
         @Size(min = 6, message = "New password must have at least 6 characters")
-        String newPassword
+        String newPassword,
+
+        @NotBlank(message = "Confirm new password is required")
+        String confirmNewPassword
 ) {
 }
