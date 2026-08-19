@@ -40,6 +40,9 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        .requestMatchers(HttpMethod.PATCH, "/api/auth/change-password")
+                        .authenticated()
+
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/api/students/*/workouts/current/exercises/*/complete",

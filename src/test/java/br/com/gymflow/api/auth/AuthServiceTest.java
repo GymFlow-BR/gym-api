@@ -15,11 +15,14 @@ import br.com.gymflow.api.repository.OrganizationRepository;
 import br.com.gymflow.api.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatcher;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import br.com.gymflow.api.auth.dto.ChangePasswordRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.junit.jupiter.api.AfterEach;
 
 import java.util.Optional;
 
@@ -344,5 +347,169 @@ class AuthServiceTest {
         verify(userRepository).findByEmail("teacher.dev@gymflow.com");
         verify(passwordEncoder).matches(request.password(), user.getPasswordHash());
         verifyNoInteractions(jwtService);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void shouldChangePasswordSuccessfully() {
+        User authenticatedUser = createAuthenticatedUser();
+        authenticatedUser.setPasswordHash("encoded-current-password");
+
+        ChangePasswordRequest request = new ChangePasswordRequest(
+                "123456",
+                "654321",
+                "654321"
+        );
+
+        authenticate(authenticatedUser);
+
+        when(passwordEncoder.matches("123456", "encoded-current-password"))
+                .thenReturn(true);
+        when(passwordEncoder.matches("654321", "encoded-current-password"))
+                .thenReturn(false);
+        when(passwordEncoder.encode("654321"))
+                .thenReturn("encoded-new-password");
+
+        authService.changePassword(request);
+
+        assertEquals("encoded-new-password", authenticatedUser.getPasswordHash());
+
+        verify(passwordEncoder).matches("123456", "encoded-current-password");
+        verify(passwordEncoder).matches("654321", "encoded-current-password");
+        verify(passwordEncoder).encode("654321");
+        verify(userRepository).save(authenticatedUser);
+    }
+
+    @Test
+    void shouldThrowBusinessRuleExceptionWhenChangingPasswordWithInvalidCurrentPassword() {
+        User authenticatedUser = createAuthenticatedUser();
+        authenticatedUser.setPasswordHash("encoded-current-password");
+
+        ChangePasswordRequest request = new ChangePasswordRequest(
+                "wrong-password",
+                "654321",
+                "654321"
+        );
+
+        authenticate(authenticatedUser);
+
+        when(passwordEncoder.matches("wrong-password", "encoded-current-password"))
+                .thenReturn(false);
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> authService.changePassword(request)
+        );
+
+        assertEquals("Current password is invalid", exception.getMessage());
+
+        verify(passwordEncoder).matches("wrong-password", "encoded-current-password");
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowBusinessRuleExceptionWhenNewPasswordIsSameAsCurrentPassword() {
+        User authenticatedUser = createAuthenticatedUser();
+        authenticatedUser.setPasswordHash("encoded-current-password");
+
+        ChangePasswordRequest request = new ChangePasswordRequest(
+                "123456",
+                "123456",
+                "123456"
+        );
+
+        authenticate(authenticatedUser);
+
+        when(passwordEncoder.matches("123456", "encoded-current-password"))
+                .thenReturn(true);
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> authService.changePassword(request)
+        );
+
+        assertEquals(
+                "New password must be different from current password",
+                exception.getMessage()
+        );
+
+        verify(passwordEncoder, times(2))
+                .matches("123456", "encoded-current-password");
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowBusinessRuleExceptionWhenNewPasswordConfirmationDoesNotMatch() {
+        User authenticatedUser = createAuthenticatedUser();
+        authenticatedUser.setPasswordHash("encoded-current-password");
+
+        ChangePasswordRequest request = new ChangePasswordRequest(
+                "123456",
+                "654321",
+                "different"
+        );
+
+        authenticate(authenticatedUser);
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> authService.changePassword(request)
+        );
+
+        assertEquals(
+                "New password confirmation does not match",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(passwordEncoder);
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowBusinessRuleExceptionWhenChangingPasswordWithoutAuthenticatedUser() {
+        ChangePasswordRequest request = new ChangePasswordRequest(
+                "123456",
+                "654321",
+                "654321"
+        );
+
+        BusinessRuleException exception = assertThrows(
+                BusinessRuleException.class,
+                () -> authService.changePassword(request)
+        );
+
+        assertEquals("User is not authenticated", exception.getMessage());
+
+        verifyNoInteractions(passwordEncoder);
+        verify(userRepository, never()).save(any());
+    }
+
+    private User createAuthenticatedUser() {
+        Organization organization = new Organization();
+        organization.setId(100L);
+        organization.setOrganizationName("GymFlow Academy Dev");
+
+        User user = new User();
+        user.setId(1L);
+        user.setName("Professor Dev");
+        user.setEmail("teacher.dev@gymflow.com");
+        user.setRole(UserRole.TEACHER);
+        user.setActive(true);
+        user.setOrganization(organization);
+
+        return user;
+    }
+
+    private void authenticate(User user) {
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(user, null, null);
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

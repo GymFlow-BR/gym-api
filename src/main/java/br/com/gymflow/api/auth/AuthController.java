@@ -10,11 +10,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.*;
+import br.com.gymflow.api.auth.dto.ChangePasswordRequest;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -50,6 +47,15 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<AuthenticatedUserResponse> me() {
         return ResponseEntity.ok(authService.getAuthenticatedUser());
+    }
+
+    @PatchMapping("/change-password")
+    public ResponseEntity<Void> changePassword(
+            @RequestBody @Valid ChangePasswordRequest request
+    ) {
+        authService.changePassword(request);
+
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/logout")

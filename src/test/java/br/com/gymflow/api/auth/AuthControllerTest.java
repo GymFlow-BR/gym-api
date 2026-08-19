@@ -1,6 +1,7 @@
 package br.com.gymflow.api.auth;
 
 import br.com.gymflow.api.auth.dto.AuthenticatedUserResponse;
+import br.com.gymflow.api.exception.BusinessRuleException;
 import br.com.gymflow.api.auth.dto.LoginResult;
 import br.com.gymflow.api.auth.dto.RegisterOrganizationResponse;
 import br.com.gymflow.api.domain.enums.OrganizationType;
@@ -19,6 +20,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+
 
 @WebMvcTest(AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -220,5 +226,89 @@ class AuthControllerTest {
 
         Mockito.verify(authCookieService).clearAuthCookie(any());
         Mockito.verifyNoInteractions(authService);
+    }
+
+    @Test
+    void shouldReturnNoContentWhenChangePasswordRequestIsValid() throws Exception {
+        doNothing().when(authService).changePassword(any());
+
+        mockMvc.perform(patch("/api/auth/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                          "currentPassword": "123456",
+                          "newPassword": "654321",
+                          "confirmNewPassword": "654321"
+                        }
+                        """))
+                .andExpect(status().isNoContent());
+
+        Mockito.verify(authService).changePassword(any());
+        Mockito.verifyNoInteractions(authCookieService);
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenChangePasswordRequestIsInvalid() throws Exception {
+        mockMvc.perform(patch("/api/auth/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                          "currentPassword": "",
+                          "newPassword": "123",
+                          "confirmNewPassword": ""
+                        }
+                        """))
+                .andExpect(status().isBadRequest());
+
+        Mockito.verifyNoInteractions(authService);
+        Mockito.verifyNoInteractions(authCookieService);
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenCurrentPasswordIsInvalid() throws Exception {
+        doThrow(new BusinessRuleException("Current password is invalid"))
+                .when(authService)
+                .changePassword(any());
+
+        mockMvc.perform(patch("/api/auth/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                          "currentPassword": "wrong-password",
+                          "newPassword": "654321",
+                          "confirmNewPassword": "654321"
+                        }
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Current password is invalid"));
+
+        Mockito.verify(authService).changePassword(any());
+        Mockito.verifyNoInteractions(authCookieService);
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenNewPasswordConfirmationDoesNotMatch() throws Exception {
+        doThrow(new BusinessRuleException("New password confirmation does not match"))
+                .when(authService)
+                .changePassword(any());
+
+        mockMvc.perform(patch("/api/auth/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                          "currentPassword": "123456",
+                          "newPassword": "654321",
+                          "confirmNewPassword": "different"
+                        }
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("New password confirmation does not match"));
+
+        Mockito.verify(authService).changePassword(any());
+        Mockito.verifyNoInteractions(authCookieService);
     }
 }

@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import br.com.gymflow.api.auth.dto.ChangePasswordRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -95,11 +96,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthenticatedUserResponse getAuthenticatedUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
-            throw new BusinessRuleException("User is not authenticated");
-        }
+        User user = getAuthenticatedUserEntity();
 
         return new AuthenticatedUserResponse(
                 user.getId(),
@@ -108,6 +105,33 @@ public class AuthService {
                 user.getEmail(),
                 user.getRole()
         );
+    }
+
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        User authenticatedUser = getAuthenticatedUserEntity();
+
+        if (!request.newPassword().equals(request.confirmNewPassword())) {
+            throw new BusinessRuleException("New password confirmation does not match");
+        }
+
+        if (!passwordEncoder.matches(
+                request.currentPassword(),
+                authenticatedUser.getPasswordHash()
+        )) {
+            throw new BusinessRuleException("Current password is invalid");
+        }
+
+        if (passwordEncoder.matches(
+                request.newPassword(),
+                authenticatedUser.getPasswordHash()
+        )) {
+            throw new BusinessRuleException("New password must be different from current password");
+        }
+
+        authenticatedUser.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+
+        userRepository.save(authenticatedUser);
     }
 
     private void validateOrganizationEmailIsAvailable(String organizationEmail) {
@@ -128,6 +152,16 @@ public class AuthService {
         }
 
         return value.trim();
+    }
+
+    private User getAuthenticatedUserEntity() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+            throw new BusinessRuleException("User is not authenticated");
+        }
+
+        return user;
     }
 
     private String normalizeEmail(String email) {
