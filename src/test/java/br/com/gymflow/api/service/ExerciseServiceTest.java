@@ -136,20 +136,29 @@ class ExerciseServiceTest {
         User admin = createUser(1L, UserRole.ADMIN, 1L);
         authenticate(admin);
 
-        Exercise exercise = createExercise(1L, 1L);
-        ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
+        Exercise activeExercise = createExercise(1L, 1L);
+        Exercise inactiveExercise = createExercise(2L, 1L);
+        inactiveExercise.setActive(false);
 
-        when(exerciseRepository.findByOrganizationIdAndActiveTrue(1L)).thenReturn(List.of(exercise));
-        when(exerciseMapper.toResponse(exercise)).thenReturn(expectedResponse);
+        ExerciseResponse activeResponse = mock(ExerciseResponse.class);
+        ExerciseResponse inactiveResponse = mock(ExerciseResponse.class);
+
+        when(exerciseRepository.findByOrganizationId(1L))
+                .thenReturn(List.of(activeExercise, inactiveExercise));
+        when(exerciseMapper.toResponse(activeExercise)).thenReturn(activeResponse);
+        when(exerciseMapper.toResponse(inactiveExercise)).thenReturn(inactiveResponse);
 
         List<ExerciseResponse> response = exerciseService.findAll();
 
         assertNotNull(response);
-        assertEquals(1, response.size());
-        assertSame(expectedResponse, response.get(0));
+        assertEquals(2, response.size());
+        assertSame(activeResponse, response.get(0));
+        assertSame(inactiveResponse, response.get(1));
 
-        verify(exerciseRepository).findByOrganizationIdAndActiveTrue(1L);
-        verify(exerciseRepository, never()).findByOrganizationId(1L);
+        verify(exerciseRepository).findByOrganizationId(1L);
+        verify(exerciseRepository, never()).findByOrganizationIdAndActiveTrue(1L);
+        verify(exerciseMapper).toResponse(activeExercise);
+        verify(exerciseMapper).toResponse(inactiveExercise);
     }
 
     @Test
@@ -158,23 +167,31 @@ class ExerciseServiceTest {
         authenticate(admin);
 
         Organization organization = createOrganization(1L);
-        Exercise exercise = createExercise(1L, 1L);
-        ExerciseResponse expectedResponse = mock(ExerciseResponse.class);
+        Exercise activeExercise = createExercise(1L, 1L);
+        Exercise inactiveExercise = createExercise(2L, 1L);
+        inactiveExercise.setActive(false);
+
+        ExerciseResponse activeResponse = mock(ExerciseResponse.class);
+        ExerciseResponse inactiveResponse = mock(ExerciseResponse.class);
 
         when(organizationRepository.findById(1L)).thenReturn(Optional.of(organization));
-        when(exerciseRepository.findByOrganizationIdAndActiveTrue(1L)).thenReturn(List.of(exercise));
-        when(exerciseMapper.toResponse(exercise)).thenReturn(expectedResponse);
+        when(exerciseRepository.findByOrganizationId(1L))
+                .thenReturn(List.of(activeExercise, inactiveExercise));
+        when(exerciseMapper.toResponse(activeExercise)).thenReturn(activeResponse);
+        when(exerciseMapper.toResponse(inactiveExercise)).thenReturn(inactiveResponse);
 
         List<ExerciseResponse> response = exerciseService.findAllByOrganizationId(1L);
 
         assertNotNull(response);
-        assertEquals(1, response.size());
-        assertSame(expectedResponse, response.get(0));
+        assertEquals(2, response.size());
+        assertSame(activeResponse, response.get(0));
+        assertSame(inactiveResponse, response.get(1));
 
         verify(organizationRepository).findById(1L);
-        verify(exerciseRepository).findByOrganizationIdAndActiveTrue(1L);
-        verify(exerciseRepository, never()).findByOrganizationId(1L);
-        verify(exerciseMapper).toResponse(exercise);
+        verify(exerciseRepository).findByOrganizationId(1L);
+        verify(exerciseRepository, never()).findByOrganizationIdAndActiveTrue(1L);
+        verify(exerciseMapper).toResponse(activeExercise);
+        verify(exerciseMapper).toResponse(inactiveExercise);
     }
 
     @Test
