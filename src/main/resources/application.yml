@@ -51,9 +51,9 @@ app:
       max-age-seconds: ${AUTH_COOKIE_MAX_AGE_SECONDS:7200}
 
 cloudinary:
-  cloud-name: ${CLOUDINARY_CLOUD_NAME}
-  api-key: ${CLOUDINARY_API_KEY}
-  api-secret: ${CLOUDINARY_API_SECRET}
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:dev-cloud-name}
+  api-key: ${CLOUDINARY_API_KEY:dev-api-key}
+  api-secret: ${CLOUDINARY_API_SECRET:dev-api-secret}
 
 gymflow:
   upload:
