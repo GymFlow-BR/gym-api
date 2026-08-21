@@ -36,7 +36,9 @@ public class UserService {
 
         validateCreatePermission(authenticatedUser, request);
 
-        Organization organization = authenticatedUser.getOrganization();
+        Long organizationId = authenticatedUser.getOrganization().getId();
+
+        Organization organization = getOrganizationById(organizationId);
 
         if (userRepository.existsByEmail(request.email())) {
             throw new BusinessRuleException("Email already in use");
@@ -45,6 +47,7 @@ public class UserService {
         User user = userMapper.toEntity(request);
         user.setOrganization(organization);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setActive(true);
 
         User savedUser = userRepository.save(user);
 

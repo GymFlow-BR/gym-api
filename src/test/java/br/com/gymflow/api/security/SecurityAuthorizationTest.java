@@ -444,6 +444,8 @@ class SecurityAuthorizationTest {
             savedUser.setId(10L);
             return savedUser;
         });
+        when(organizationRepository.findById(1L))
+                .thenReturn(Optional.of(admin.getOrganization()));
 
         mockMvc.perform(post("/api/users")
                         .header("Authorization", "Bearer " + token)
@@ -477,6 +479,8 @@ class SecurityAuthorizationTest {
             savedUser.setId(11L);
             return savedUser;
         });
+        when(organizationRepository.findById(1L))
+                .thenReturn(Optional.of(teacher.getOrganization()));
 
         mockMvc.perform(post("/api/users")
                         .header("Authorization", "Bearer " + token)
