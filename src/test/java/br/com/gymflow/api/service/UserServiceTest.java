@@ -82,6 +82,8 @@ class UserServiceTest {
         when(passwordEncoder.encode(request.password())).thenReturn("encoded-password");
         when(userRepository.save(userToSave)).thenReturn(savedUser);
         when(userMapper.toResponse(savedUser)).thenReturn(expectedResponse);
+        when(organizationRepository.findById(1L))
+                .thenReturn(Optional.of(admin.getOrganization()));
 
         UserResponse response = userService.create(request);
 
@@ -91,7 +93,7 @@ class UserServiceTest {
         assertEquals("student.test@gymflow.com", response.email());
         assertEquals(UserRole.STUDENT, response.role());
 
-        assertEquals(admin.getOrganization(), userToSave.getOrganization());
+        assertEquals(admin.getOrganization().getId(), userToSave.getOrganization().getId());
         assertEquals("encoded-password", userToSave.getPasswordHash());
 
         verify(userRepository).existsByEmail(request.email());
@@ -99,7 +101,7 @@ class UserServiceTest {
         verify(passwordEncoder).encode(request.password());
         verify(userRepository).save(userToSave);
         verify(userMapper).toResponse(savedUser);
-        verifyNoInteractions(organizationRepository);
+        verify(organizationRepository).findById(1L);
     }
 
 
@@ -136,6 +138,8 @@ class UserServiceTest {
         when(passwordEncoder.encode(request.password())).thenReturn("encoded-password");
         when(userRepository.save(userToSave)).thenReturn(savedUser);
         when(userMapper.toResponse(savedUser)).thenReturn(expectedResponse);
+        when(organizationRepository.findById(1L))
+                .thenReturn(Optional.of(teacher.getOrganization()));
 
         UserResponse response = userService.create(request);
 
@@ -145,7 +149,7 @@ class UserServiceTest {
         assertEquals("student.teacher.created@gymflow.com", response.email());
         assertEquals(UserRole.STUDENT, response.role());
 
-        assertEquals(teacher.getOrganization(), userToSave.getOrganization());
+        assertEquals(teacher.getOrganization().getId(), userToSave.getOrganization().getId());
         assertEquals("encoded-password", userToSave.getPasswordHash());
 
         verify(userRepository).existsByEmail(request.email());
@@ -153,7 +157,7 @@ class UserServiceTest {
         verify(passwordEncoder).encode(request.password());
         verify(userRepository).save(userToSave);
         verify(userMapper).toResponse(savedUser);
-        verifyNoInteractions(organizationRepository);
+        verify(organizationRepository).findById(1L);
     }
 
     @Test
@@ -215,6 +219,8 @@ class UserServiceTest {
         );
 
         when(userRepository.existsByEmail(request.email())).thenReturn(true);
+        when(organizationRepository.findById(1L))
+                .thenReturn(Optional.of(admin.getOrganization()));
 
         BusinessRuleException exception = assertThrows(BusinessRuleException.class, () ->
                 userService.create(request)
@@ -223,7 +229,7 @@ class UserServiceTest {
         assertEquals("Email already in use", exception.getMessage());
 
         verify(userRepository).existsByEmail(request.email());
-        verifyNoInteractions(organizationRepository);
+        verify(organizationRepository).findById(1L);
         verifyNoInteractions(userMapper);
         verifyNoInteractions(passwordEncoder);
     }
