@@ -41,7 +41,7 @@ SELECT
     'dev@gymflow.com',
     '24999999999',
     true
-WHERE NOT EXISTS (
+    WHERE NOT EXISTS (
     SELECT 1
     FROM organizations
     WHERE organization_email = 'dev@gymflow.com'
@@ -51,6 +51,7 @@ WHERE NOT EXISTS (
 -- ============================================================
 -- Users
 -- ============================================================
+
 INSERT INTO users (
     organization_id,
     user_name,
@@ -91,7 +92,7 @@ SELECT
     true
 FROM organizations o
 WHERE o.organization_email = 'dev@gymflow.com'
-AND NOT EXISTS (
+  AND NOT EXISTS (
     SELECT 1
     FROM users
     WHERE user_email = 'teacher.dev@gymflow.com'
@@ -114,7 +115,7 @@ SELECT
     true
 FROM organizations o
 WHERE o.organization_email = 'dev@gymflow.com'
-AND NOT EXISTS (
+  AND NOT EXISTS (
     SELECT 1
     FROM users
     WHERE user_email = 'student.dev@gymflow.com'
@@ -140,7 +141,7 @@ SELECT
     'Perfil de aluno criado para testes locais.'
 FROM users u
 WHERE u.user_email = 'student.dev@gymflow.com'
-AND NOT EXISTS (
+  AND NOT EXISTS (
     SELECT 1
     FROM student_profiles sp
     WHERE sp.user_id = u.user_id
@@ -172,11 +173,11 @@ SELECT
     true
 FROM organizations o
 WHERE o.organization_email = 'dev@gymflow.com'
-AND NOT EXISTS (
+  AND NOT EXISTS (
     SELECT 1
     FROM exercises e
     WHERE e.organization_id = o.organization_id
-    AND e.exercise_name = 'Supino reto'
+      AND e.exercise_name = 'Supino reto'
 );
 
 INSERT INTO exercises (
@@ -200,11 +201,11 @@ SELECT
     true
 FROM organizations o
 WHERE o.organization_email = 'dev@gymflow.com'
-AND NOT EXISTS (
+  AND NOT EXISTS (
     SELECT 1
     FROM exercises e
     WHERE e.organization_id = o.organization_id
-    AND e.exercise_name = 'Agachamento livre'
+      AND e.exercise_name = 'Agachamento livre'
 );
 
 INSERT INTO exercises (
@@ -228,11 +229,11 @@ SELECT
     true
 FROM organizations o
 WHERE o.organization_email = 'dev@gymflow.com'
-AND NOT EXISTS (
+  AND NOT EXISTS (
     SELECT 1
     FROM exercises e
     WHERE e.organization_id = o.organization_id
-    AND e.exercise_name = 'Remada curvada'
+      AND e.exercise_name = 'Remada curvada'
 );
 
 
@@ -251,11 +252,11 @@ SELECT
     'ACTIVE'
 FROM users u
 WHERE u.user_email = 'teacher.dev@gymflow.com'
-AND NOT EXISTS (
+  AND NOT EXISTS (
     SELECT 1
     FROM workouts w
     WHERE w.teacher_id = u.user_id
-    AND w.workout_name = 'Treino A - Dev'
+      AND w.workout_name = 'Treino A - Dev'
 );
 
 
@@ -283,15 +284,15 @@ SELECT
     60,
     'Manter controle do movimento.'
 FROM workouts w
-JOIN users teacher ON teacher.user_id = w.teacher_id
-JOIN exercises e ON e.organization_id = teacher.organization_id
+         JOIN users teacher ON teacher.user_id = w.teacher_id
+         JOIN exercises e ON e.organization_id = teacher.organization_id
 WHERE w.workout_name = 'Treino A - Dev'
-AND e.exercise_name = 'Supino reto'
-AND NOT EXISTS (
+  AND e.exercise_name = 'Supino reto'
+  AND NOT EXISTS (
     SELECT 1
     FROM workout_exercises we
     WHERE we.workout_id = w.workout_id
-    AND we.exercise_id = e.exercise_id
+      AND we.exercise_id = e.exercise_id
 );
 
 INSERT INTO workout_exercises (
@@ -314,15 +315,15 @@ SELECT
     90,
     'Atenção à postura durante a execução.'
 FROM workouts w
-JOIN users teacher ON teacher.user_id = w.teacher_id
-JOIN exercises e ON e.organization_id = teacher.organization_id
+         JOIN users teacher ON teacher.user_id = w.teacher_id
+         JOIN exercises e ON e.organization_id = teacher.organization_id
 WHERE w.workout_name = 'Treino A - Dev'
-AND e.exercise_name = 'Agachamento livre'
-AND NOT EXISTS (
+  AND e.exercise_name = 'Agachamento livre'
+  AND NOT EXISTS (
     SELECT 1
     FROM workout_exercises we
     WHERE we.workout_id = w.workout_id
-    AND we.exercise_id = e.exercise_id
+      AND we.exercise_id = e.exercise_id
 );
 
 INSERT INTO workout_exercises (
@@ -345,43 +346,54 @@ SELECT
     60,
     'Evitar impulso excessivo.'
 FROM workouts w
-JOIN users teacher ON teacher.user_id = w.teacher_id
-JOIN exercises e ON e.organization_id = teacher.organization_id
+         JOIN users teacher ON teacher.user_id = w.teacher_id
+         JOIN exercises e ON e.organization_id = teacher.organization_id
 WHERE w.workout_name = 'Treino A - Dev'
-AND e.exercise_name = 'Remada curvada'
-AND NOT EXISTS (
+  AND e.exercise_name = 'Remada curvada'
+  AND NOT EXISTS (
     SELECT 1
     FROM workout_exercises we
     WHERE we.workout_id = w.workout_id
-    AND we.exercise_id = e.exercise_id
+      AND we.exercise_id = e.exercise_id
 );
 
 
 -- ============================================================
--- Student Workout
+-- Student Workouts - Weekly Routine
 -- ============================================================
 
 INSERT INTO student_workouts (
     student_id,
     workout_id,
     assigned_at,
+    week_day,
     status
 )
 SELECT
     student.user_id,
     w.workout_id,
     CURRENT_TIMESTAMP,
+    routine.week_day,
     'ACTIVE'
 FROM users student
-JOIN workouts w ON w.workout_name = 'Treino A - Dev'
-JOIN users teacher ON teacher.user_id = w.teacher_id
+         JOIN workouts w ON w.workout_name = 'Treino A - Dev'
+         JOIN users teacher ON teacher.user_id = w.teacher_id
+         CROSS JOIN (
+    VALUES
+        ('MONDAY'),
+        ('TUESDAY'),
+        ('WEDNESDAY'),
+        ('THURSDAY'),
+        ('FRIDAY')
+) AS routine(week_day)
 WHERE student.user_email = 'student.dev@gymflow.com'
-AND student.organization_id = teacher.organization_id
-AND NOT EXISTS (
+  AND student.organization_id = teacher.organization_id
+  AND NOT EXISTS (
     SELECT 1
     FROM student_workouts sw
     WHERE sw.student_id = student.user_id
-    AND sw.workout_id = w.workout_id
+      AND sw.workout_id = w.workout_id
+      AND sw.week_day = routine.week_day
 );
 
 
@@ -431,12 +443,29 @@ WHERE workout_id = (
     SELECT workout_id
     FROM workouts
     WHERE workout_name = 'Treino A - Dev'
-);
+)
+ORDER BY exercise_order;
 
-SELECT 'Student workout created' AS result, student_workout_id, student_id, workout_id, status
+SELECT
+    'Student workouts created' AS result,
+    student_workout_id,
+    student_id,
+    workout_id,
+    week_day,
+    status
 FROM student_workouts
 WHERE student_id = (
     SELECT user_id
     FROM users
     WHERE user_email = 'student.dev@gymflow.com'
-);
+)
+ORDER BY
+    CASE week_day
+        WHEN 'MONDAY' THEN 1
+        WHEN 'TUESDAY' THEN 2
+        WHEN 'WEDNESDAY' THEN 3
+        WHEN 'THURSDAY' THEN 4
+        WHEN 'FRIDAY' THEN 5
+        WHEN 'SATURDAY' THEN 6
+        WHEN 'SUNDAY' THEN 7
+        END;
