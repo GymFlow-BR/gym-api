@@ -454,7 +454,6 @@ docs
 
 ## Fora do escopo do MVP
 
-- Deploy em produção.
 - Pagamentos.
 - Marketplace de profissionais.
 - Login social.
@@ -464,14 +463,5 @@ docs
 - Relatórios avançados.
 - App mobile nativo.
 - Integração com mensageria externa.
-- Administração global da plataforma.
 
 ---
-
-## Observações de desenvolvimento
-
-- Dados fake de desenvolvimento devem ficar em `docs/dev`.
-- Migrations Flyway devem ser usadas apenas para estrutura e alterações de schema.
-- Seed local não deve ser usado em produção.
-- Segredos reais devem ser configurados por variáveis de ambiente.
-- O frontend deve enviar requisições com credenciais habilitadas para permitir uso do cookie HttpOnly.
